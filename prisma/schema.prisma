@@ -1,0 +1,127 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Society {
+  id         Int      @id @default(autoincrement())
+  name       String
+  owners     Int
+  flats      Int
+  created_at DateTime @default(now())
+  
+  users      User[]
+  flats_rel  Flat[]
+  service_charges ServiceCharge[]
+}
+
+model User {
+  id                       Int      @id @default(autoincrement())
+  username                 String
+  fullname                 String
+  alias                    String
+  email                    String   @unique
+  password                 String
+  role_id                  Int
+  society_id               Int
+  flat_id                  Int?
+  service_type             String?
+  pay_service_charge       Boolean  @default(true)
+  created_at               DateTime @default(now())
+  
+  role                     Role     @relation(fields: [role_id], references: [id])
+  society                  Society  @relation(fields: [society_id], references: [id])
+  flat                     Flat?    @relation(fields: [flat_id], references: [id])
+  owned_flats              Flat[]   @relation("FlatOwner")
+  payments                 Payment[]
+  user_service_charges     UserServiceCharge[]
+  rented_flats             FlatRenter[] @relation("Renter")
+}
+
+model Role {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String?
+  users       User[]
+}
+
+model Flat {
+  id         Int      @id @default(autoincrement())
+  number     String
+  society_id Int
+  owner_id   Int
+  created_at DateTime @default(now())
+  
+  society    Society  @relation(fields: [society_id], references: [id])
+  owner      User     @relation("FlatOwner", fields: [owner_id], references: [id])
+  renters    FlatRenter[]
+  user       User[]
+}
+
+model PredefinedServiceCharge {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  description String?
+  created_at  DateTime @default(now())
+  
+  service_charges     ServiceCharge[]
+  user_service_charges UserServiceCharge[]
+}
+
+model ServiceCharge {
+  id                        Int      @id @default(autoincrement())
+  society_id                Int
+  predefined_service_charge_id Int
+  amount                    Decimal  @db.Decimal(10, 2)
+  created_at                DateTime @default(now())
+  
+  society                   Society  @relation(fields: [society_id], references: [id])
+  predefined_service_charge PredefinedServiceCharge @relation(fields: [predefined_service_charge_id], references: [id])
+  payments                  Payment[]
+}
+
+model UserServiceCharge {
+  id                        Int      @id @default(autoincrement())
+  user_id                   Int
+  predefined_service_charge_id Int
+  amount                    Decimal  @db.Decimal(10, 2)
+  created_at                DateTime @default(now())
+  
+  user                      User     @relation(fields: [user_id], references: [id])
+  predefined_service_charge PredefinedServiceCharge @relation(fields: [predefined_service_charge_id], references: [id])
+}
+
+model Payment {
+  id              Int      @id @default(autoincrement())
+  user_id         Int
+  service_charge_id Int
+  amount          Decimal? @db.Decimal(10, 2)
+  status          String
+  payment_month   DateTime @db.Date
+  payment_date    DateTime @default(now())
+  
+  user            User     @relation(fields: [user_id], references: [id])
+  service_charge  ServiceCharge @relation(fields: [service_charge_id], references: [id])
+}
+
+model FlatRenter {
+  id         Int      @id @default(autoincrement())
+  flat_id    Int
+  renter_id  Int
+  start_date DateTime @db.Date
+  end_date   DateTime? @db.Date
+  created_at DateTime @default(now())
+  
+  flat       Flat     @relation(fields: [flat_id], references: [id])
+  renter     User     @relation("Renter", fields: [renter_id], references: [id])
+}
