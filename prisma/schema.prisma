@@ -109,7 +109,9 @@ model Payment {
   status          String
   payment_month   DateTime @db.Date
   payment_date    DateTime @default(now())
-  
+  tran_id            String?  @unique
+  transaction_details Json?
+
   user            User     @relation(fields: [user_id], references: [id])
   service_charge  ServiceCharge @relation(fields: [service_charge_id], references: [id])
 }
