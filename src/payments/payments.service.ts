@@ -23,7 +23,7 @@ export class PaymentsService {
         status: createPaymentDto.status,
         payment_month: new Date(createPaymentDto.payment_month),
         payment_date: new Date(),
-        tran_id: tranId || null, // Store tran_id if provided
+        tran_id: tranId || null,
       },
     });
   }
