@@ -9,14 +9,15 @@ import { UserEntity } from './entities/user.entity';
 export class UsersService {
   constructor(private prisma: PrismaService) {}
 
-  // async create(createUserDto: CreateUserDto): Promise<UserEntity> {
-  //   return this.prisma.user.create({
-  //     data: {
-  //       ...createUserDto,
-  //       created_at: new Date(),
-  //     },
-  //   });
-  // }
+  async create(createUserDto: CreateUserDto): Promise<UserEntity> {
+    return this.prisma.user.create({
+      data: {
+        ...createUserDto,
+        pay_service_charge: createUserDto.pay_service_charge ?? true, // Fallback to default
+        created_at: new Date(), // Optional since Prisma handles @default(now())
+      },
+    });
+  }
 
   async findAll(): Promise<UserEntity[]> {
     return this.prisma.user.findMany();

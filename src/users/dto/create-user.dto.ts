@@ -11,7 +11,7 @@ export class CreateUserDto {
 
   @IsString()
   @IsOptional()
-  alias?: string;
+  alias: string;
 
   @IsEmail()
   email: string;
