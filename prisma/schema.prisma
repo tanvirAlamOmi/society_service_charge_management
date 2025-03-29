@@ -25,24 +25,32 @@ model Society {
   service_charges ServiceCharge[]
 }
 
+enum UserStatus {
+  PENDING
+  ACTIVE
+  INACTIVE
+  CANCELLED
+}
+
 model User {
-  id                       Int      @id @default(autoincrement())
-  username                 String
+  id                       Int         @id @default(autoincrement())
+  username                 String?
   fullname                 String
-  alias                    String
-  email                    String   @unique
-  password                 String
+  alias                    String?
+  email                    String      @unique
+  password                 String?
   role_id                  Int
   society_id               Int
   flat_id                  Int?
   service_type             String?
-  pay_service_charge       Boolean  @default(true)
-  created_at               DateTime @default(now())
+  pay_service_charge       Boolean     @default(true)
+  created_at               DateTime    @default(now())
+  status                   UserStatus  @default(PENDING)  
   
-  role                     Role     @relation(fields: [role_id], references: [id])
-  society                  Society  @relation(fields: [society_id], references: [id])
-  flat                     Flat?    @relation(fields: [flat_id], references: [id])
-  owned_flats              Flat[]   @relation("FlatOwner")
+  role                     Role        @relation(fields: [role_id], references: [id])
+  society                  Society     @relation(fields: [society_id], references: [id])
+  flat                     Flat?       @relation(fields: [flat_id], references: [id])
+  owned_flats              Flat[]      @relation("FlatOwner")
   payments                 Payment[]
   user_service_charges     UserServiceCharge[]
   rented_flats             FlatRenter[] @relation("Renter")
@@ -78,10 +86,17 @@ model PredefinedServiceCharge {
   user_service_charges UserServiceCharge[]
 }
 
+enum FlatType {
+  TWO_BHK
+  THREE_BHK
+  FOUR_BHK
+}
+
 model ServiceCharge {
   id                        Int      @id @default(autoincrement())
   society_id                Int
   predefined_service_charge_id Int
+  flat_type                 FlatType
   amount                    Decimal  @db.Decimal(10, 2)
   created_at                DateTime @default(now())
   

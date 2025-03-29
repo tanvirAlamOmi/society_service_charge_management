@@ -1,40 +1,45 @@
-import { IsEmail, IsNotEmpty, IsOptional, IsString, IsBoolean, IsInt } from 'class-validator';
+// src/users/dto/create-user.dto.ts
+import { IsString, IsEmail, IsInt, IsBoolean, IsOptional, IsEnum } from 'class-validator';
+ import { UserStatus } from '@prisma/client';
 
-export class CreateUserDto {
-  @IsString()
-  @IsNotEmpty()
-  username: string;
-
-  @IsString()
-  @IsNotEmpty()
-  fullname: string;
-
+export class CreateUserDto { 
   @IsString()
   @IsOptional()
-  alias: string;
-
+  username?: string;
+ 
+  @IsString()
+  fullname: string;
+ 
+  @IsString()
+  @IsOptional()
+  alias?: string;
+ 
   @IsEmail()
   email: string;
-
+ 
   @IsString()
-  @IsNotEmpty()
-  password: string;
-
+  @IsOptional()
+  password?: string;
+ 
   @IsInt()
   role_id: number;
-
+ 
   @IsInt()
   society_id: number;
-
-  @IsOptional()
+ 
   @IsInt()
+  @IsOptional()
   flat_id?: number;
-
-  @IsOptional()
+ 
   @IsString()
-  service_type?: string;
-
   @IsOptional()
+  service_type?: string;
+ 
   @IsBoolean()
+  @IsOptional()
   pay_service_charge?: boolean;
+ 
+  @IsEnum(UserStatus)
+  @IsOptional()
+  status?: UserStatus;
 }

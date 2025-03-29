@@ -1,7 +1,7 @@
 // src/service-charges/service-charges.controller.ts
 import { Controller, Get, Post, Body, Patch, Param, Delete, ParseIntPipe } from '@nestjs/common';
 import { ServiceChargesService } from './service-charges.service';
-import { CreateServiceChargeDto } from './dto/create-service-charge.dto';
+import { CreateBulkServiceChargeDto, CreateServiceChargeDto } from './dto/create-service-charge.dto';
 import { UpdateServiceChargeDto } from './dto/update-service-charge.dto';
 import { ServiceChargeEntity } from './entities/service-charge.entity';
 
@@ -13,7 +13,16 @@ export class ServiceChargesController {
   create(@Body() createServiceChargeDto: CreateServiceChargeDto): Promise<ServiceChargeEntity> {
     return this.serviceChargesService.create(createServiceChargeDto);
   }
+  @Post('bulk')
+  createBulk(@Body() createBulkServiceChargeDto: CreateBulkServiceChargeDto): Promise<ServiceChargeEntity[]> {
+    return this.serviceChargesService.createBulk(createBulkServiceChargeDto);  
+  }
 
+  @Get('society/:societyId')
+  findBySociety(@Param('societyId', ParseIntPipe) societyId: number): Promise<any> {
+    return this.serviceChargesService.findBySociety(societyId);
+  }
+  
   @Get()
   findAll(): Promise<ServiceChargeEntity[]> {
     return this.serviceChargesService.findAll();

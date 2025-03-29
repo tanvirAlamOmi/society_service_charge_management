@@ -1,0 +1,8 @@
+-- CreateEnum
+CREATE TYPE "UserStatus" AS ENUM ('PENDING', 'ACTIVE', 'INACTIVE', 'CANCELLED');
+
+-- AlterTable
+ALTER TABLE "User" ADD COLUMN     "status" "UserStatus" NOT NULL DEFAULT 'PENDING',
+ALTER COLUMN "username" DROP NOT NULL,
+ALTER COLUMN "alias" DROP NOT NULL,
+ALTER COLUMN "password" DROP NOT NULL;
