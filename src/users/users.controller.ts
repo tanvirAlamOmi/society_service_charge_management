@@ -1,16 +1,18 @@
 // src/users/users.controller.ts
-import { Controller, Get, Post, Body, Patch, Param, Delete, ParseIntPipe } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, ParseIntPipe, Request } from '@nestjs/common';
 import { UsersService } from './users.service';
-import { CreateUserDto } from './dto/create-user.dto'; 
+import { BulkInviteUsersDto, CreateUserDto } from './dto/create-user.dto'; 
 import { UpdateUserDto } from './dto/update-user.dto'; 
 import { UserEntity } from './entities/user.entity';
 import { AcceptInvitationDto } from './dto/accept-invitation.dto';
-
+import { Public } from 'src/auth/decorators/public.decorator';
+ 
 
 @Controller('users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
+  @Public()
   @Post() 
   create(@Body() createUserDto: CreateUserDto): Promise<UserEntity> {
     return this.usersService.create(createUserDto);
@@ -20,13 +22,20 @@ export class UsersController {
   inviteUser(@Body() inviteUserDto: CreateUserDto): Promise<UserEntity> {
     return this.usersService.inviteUser(inviteUserDto);
   }
+ 
+  @Post('invite/bulk')
+   async inviteUsersBulk(@Body() bulkInviteUsersDto: BulkInviteUsersDto, @Request() req ) {
+    return this.usersService.inviteUsersBulk(bulkInviteUsersDto, req.user );
+  }
 
+  @Public() 
   @Post(':id/accept') 
   acceptInvitation(
     @Param('id', ParseIntPipe) id: number,
+    @Body('token') token: string,
     @Body() acceptInvitationDto: AcceptInvitationDto,
   ): Promise<UserEntity> {
-    return this.usersService.acceptInvitation(id, acceptInvitationDto);
+    return this.usersService.acceptInvitation(id, token, acceptInvitationDto);
   }
 
   @Post(':id/cancel') 
@@ -44,7 +53,7 @@ export class UsersController {
     return this.usersService.findUsersBySociety(societyId);
   }
 
-  @Get() 
+   @Get() 
   findAll(): Promise<UserEntity[]> {
     return this.usersService.findAll();
   }

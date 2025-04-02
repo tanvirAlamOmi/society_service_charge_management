@@ -25,7 +25,7 @@ export class SocietiesService {
   async findOne(id: number): Promise<SocietyEntity> {
     const society = await this.prisma.society.findUnique({
       where: { id },
-      include: { users: true, flats_rel: true, service_charges: true },
+      include: { users: true, flats: true, service_charges: true },
     });
     if (!society) {
       throw new NotFoundException(`Society with ID ${id} not found`);

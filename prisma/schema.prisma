@@ -9,20 +9,26 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider          = "postgresql"
+  url               = env("DATABASE_URL")
+  shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
 }
 
 model Society {
-  id         Int      @id @default(autoincrement())
-  name       String
-  owners     Int
-  flats      Int
-  created_at DateTime @default(now())
-  
-  users      User[]
-  flats_rel  Flat[]
+  id          Int      @id @default(autoincrement())
+  name        String
+  address     String?
+  postal_code String?
+  city        String?
+  state       String?
+  country     String?
+  total_flats Int
+  created_at  DateTime @default(now())
+
+  users           User[]
+  flats           Flat[]
   service_charges ServiceCharge[]
+  invitations     Invitation[]
 }
 
 enum UserStatus {
@@ -33,57 +39,37 @@ enum UserStatus {
 }
 
 model User {
-  id                       Int         @id @default(autoincrement())
-  username                 String?
-  fullname                 String
-  alias                    String?
-  email                    String      @unique
-  password                 String?
-  role_id                  Int
-  society_id               Int
-  flat_id                  Int?
-  service_type             String?
-  pay_service_charge       Boolean     @default(true)
-  created_at               DateTime    @default(now())
-  status                   UserStatus  @default(PENDING)  
-  
-  role                     Role        @relation(fields: [role_id], references: [id])
-  society                  Society     @relation(fields: [society_id], references: [id])
-  flat                     Flat?       @relation(fields: [flat_id], references: [id])
-  owned_flats              Flat[]      @relation("FlatOwner")
-  payments                 Payment[]
-  user_service_charges     UserServiceCharge[]
-  rented_flats             FlatRenter[] @relation("Renter")
+  id                 Int        @id @default(autoincrement())
+  username           String?    @unique
+  fullname           String
+  alias              String?
+  email              String     @unique
+  phone              String?    @unique
+  password           String?
+  role_id            Int
+  society_id         Int
+  flat_id            Int?
+  service_type       String?
+  pay_service_charge Boolean    @default(true)
+  created_at         DateTime   @default(now())
+  status             UserStatus @default(PENDING)
+
+  role                 Role                @relation(fields: [role_id], references: [id])
+  society              Society             @relation(fields: [society_id], references: [id])
+  flat                 Flat?               @relation(fields: [flat_id], references: [id])
+  owned_flats          Flat[]              @relation("FlatOwner")
+  payments             Payment[]
+  user_service_charges UserServiceCharge[]
+  rented_flats         FlatResident[]      @relation("Resident")
+  invitationsSent      Invitation[]        @relation("Inviter")
+  invitationsReceived  Invitation[]        @relation("Invitee")
 }
 
 model Role {
-  id          Int      @id @default(autoincrement())
+  id          Int     @id @default(autoincrement())
   name        String
   description String?
   users       User[]
-}
-
-model Flat {
-  id         Int      @id @default(autoincrement())
-  number     String
-  society_id Int
-  owner_id   Int
-  created_at DateTime @default(now())
-  
-  society    Society  @relation(fields: [society_id], references: [id])
-  owner      User     @relation("FlatOwner", fields: [owner_id], references: [id])
-  renters    FlatRenter[]
-  user       User[]
-}
-
-model PredefinedServiceCharge {
-  id          Int      @id @default(autoincrement())
-  name        String   @unique
-  description String?
-  created_at  DateTime @default(now())
-  
-  service_charges     ServiceCharge[]
-  user_service_charges UserServiceCharge[]
 }
 
 enum FlatType {
@@ -92,53 +78,103 @@ enum FlatType {
   FOUR_BHK
 }
 
+model Flat {
+  id          Int      @id @default(autoincrement())
+  number      String
+  society_id  Int
+  owner_id    Int
+  resident_id Int?
+  flat_type   FlatType
+  created_at  DateTime @default(now())
+
+  society   Society        @relation(fields: [society_id], references: [id])
+  owner     User           @relation("FlatOwner", fields: [owner_id], references: [id])
+  residents FlatResident[]
+  user      User[]
+}
+
+model PredefinedServiceCharge {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  description String?
+  created_at  DateTime @default(now())
+
+  service_charges      ServiceCharge[]
+  user_service_charges UserServiceCharge[]
+}
+
 model ServiceCharge {
-  id                        Int      @id @default(autoincrement())
-  society_id                Int
+  id                           Int      @id @default(autoincrement())
+  society_id                   Int
   predefined_service_charge_id Int
-  flat_type                 FlatType
-  amount                    Decimal  @db.Decimal(10, 2)
-  created_at                DateTime @default(now())
-  
-  society                   Society  @relation(fields: [society_id], references: [id])
+  flat_type                    FlatType
+  amount                       Decimal  @db.Decimal(10, 2)
+  created_at                   DateTime @default(now())
+
+  society                   Society                 @relation(fields: [society_id], references: [id])
   predefined_service_charge PredefinedServiceCharge @relation(fields: [predefined_service_charge_id], references: [id])
   payments                  Payment[]
 }
 
 model UserServiceCharge {
-  id                        Int      @id @default(autoincrement())
-  user_id                   Int
+  id                           Int      @id @default(autoincrement())
+  user_id                      Int
   predefined_service_charge_id Int
-  amount                    Decimal  @db.Decimal(10, 2)
-  created_at                DateTime @default(now())
-  
-  user                      User     @relation(fields: [user_id], references: [id])
+  amount                       Decimal  @db.Decimal(10, 2)
+  created_at                   DateTime @default(now())
+
+  user                      User                    @relation(fields: [user_id], references: [id])
   predefined_service_charge PredefinedServiceCharge @relation(fields: [predefined_service_charge_id], references: [id])
 }
 
 model Payment {
-  id              Int      @id @default(autoincrement())
-  user_id         Int
-  service_charge_id Int
-  amount          Decimal? @db.Decimal(10, 2)
-  status          String
-  payment_month   DateTime @db.Date
-  payment_date    DateTime @default(now())
-  tran_id            String?  @unique
+  id                  Int      @id @default(autoincrement())
+  user_id             Int
+  service_charge_id   Int
+  amount              Decimal? @db.Decimal(10, 2)
+  status              String
+  payment_month       DateTime @db.Date
+  payment_date        DateTime @default(now())
+  tran_id             String?  @unique
   transaction_details Json?
 
-  user            User     @relation(fields: [user_id], references: [id])
-  service_charge  ServiceCharge @relation(fields: [service_charge_id], references: [id])
+  user           User          @relation(fields: [user_id], references: [id])
+  service_charge ServiceCharge @relation(fields: [service_charge_id], references: [id])
 }
 
-model FlatRenter {
-  id         Int      @id @default(autoincrement())
-  flat_id    Int
-  renter_id  Int
-  start_date DateTime @db.Date
-  end_date   DateTime? @db.Date
-  created_at DateTime @default(now())
-  
-  flat       Flat     @relation(fields: [flat_id], references: [id])
-  renter     User     @relation("Renter", fields: [renter_id], references: [id])
+model FlatResident {
+  id          Int       @id @default(autoincrement())
+  flat_id     Int
+  resident_id Int
+  start_date  DateTime  @db.Date
+  end_date    DateTime? @db.Date
+  created_at  DateTime  @default(now())
+
+  flat     Flat @relation(fields: [flat_id], references: [id])
+  resident User @relation("Resident", fields: [resident_id], references: [id])
+}
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  EXPIRED
+  CANCELLED
+  REJECTED
+}
+
+model Invitation {
+  id         Int              @id @default(autoincrement())
+  email      String
+  token      String           @unique
+  status     InvitationStatus @default(PENDING)
+  society_id Int
+  inviter_id Int
+  inviter    User             @relation(fields: [inviter_id], references: [id], name: "Inviter")
+  user_id    Int?
+  createdAt  DateTime         @default(now())
+  expiresAt  DateTime
+  acceptedAt DateTime?
+
+  society Society @relation(fields: [society_id], references: [id])
+  user    User?   @relation(fields: [user_id], references: [id], name: "Invitee")
 }

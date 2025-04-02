@@ -4,6 +4,7 @@ import { FlatsService } from './flats.service';
 import { CreateFlatDto } from './dto/create-flat.dto';
 import { UpdateFlatDto } from './dto/update-flat.dto';
 import { FlatEntity } from './entities/flat.entity';
+import { BulkCreateFlatsDto } from './dto/create-bulk-flat.dto';
 
 @Controller('flats')
 export class FlatsController {
@@ -12,6 +13,11 @@ export class FlatsController {
   @Post()
   create(@Body() createFlatDto: CreateFlatDto): Promise<FlatEntity> {
     return this.flatsService.create(createFlatDto);
+  }
+
+  @Post('bulk')
+  async createBulkFlats(@Body() bulkCreateFlatsDto: BulkCreateFlatsDto) {
+    return this.flatsService.createBulkFlats(bulkCreateFlatsDto);
   }
 
   @Get()

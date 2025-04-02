@@ -1,7 +1,7 @@
-// src/users/dto/create-user.dto.ts
-import { IsString, IsEmail, IsInt, IsBoolean, IsOptional, IsEnum } from 'class-validator';
+ import { IsString, IsEmail, IsInt, IsBoolean, IsOptional, IsEnum, Matches, IsArray, ValidateNested  } from 'class-validator';
  import { UserStatus } from '@prisma/client';
-
+ import { Type } from 'class-transformer';
+ 
 export class CreateUserDto { 
   @IsString()
   @IsOptional()
@@ -16,6 +16,12 @@ export class CreateUserDto {
  
   @IsEmail()
   email: string;
+
+  @IsOptional() 
+  @Matches(/^(?:\+88|88)?(01[3-9]\d{8})$/, {
+    message: 'Phone number must be a valid Bangladeshi number (e.g., +8801XXXXXXXXX or 01XXXXXXXXX)',
+  })
+  phone?: string;
  
   @IsString()
   @IsOptional()
@@ -42,4 +48,11 @@ export class CreateUserDto {
   @IsEnum(UserStatus)
   @IsOptional()
   status?: UserStatus;
+}
+
+export class BulkInviteUsersDto {
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => CreateUserDto)
+  users: CreateUserDto[];
 }

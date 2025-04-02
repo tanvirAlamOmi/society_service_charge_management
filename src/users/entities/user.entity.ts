@@ -6,6 +6,7 @@ export class UserEntity implements PrismaUser {
   fullname: string;
   alias: string | null;
   email: string;
+  phone: string | null;
   password: string | null;
   role_id: number;
   society_id: number;

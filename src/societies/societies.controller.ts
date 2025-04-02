@@ -1,14 +1,15 @@
-// src/societies/societies.controller.ts
-import { Controller, Get, Post, Body, Patch, Param, Delete, ParseIntPipe } from '@nestjs/common';
+ import { Controller, Get, Post, Body, Patch, Param, Delete, ParseIntPipe } from '@nestjs/common';
 import { SocietiesService } from './societies.service';
 import { CreateSocietyDto } from './dto/create-society.dto';
 import { UpdateSocietyDto } from './dto/update-society.dto';
 import { SocietyEntity } from './entities/society.entity';
+import { Public } from 'src/auth/decorators/public.decorator';
 
 @Controller('societies')
 export class SocietiesController {
   constructor(private readonly societiesService: SocietiesService) {}
 
+  @Public() 
   @Post()
   create(@Body() createSocietyDto: CreateSocietyDto): Promise<SocietyEntity> {
     return this.societiesService.create(createSocietyDto);

@@ -1,20 +1,50 @@
 // src/users/users.service.ts
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, UnauthorizedException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { CreateUserDto } from './dto/create-user.dto';  
+import { BulkInviteUsersDto, CreateUserDto } from './dto/create-user.dto';  
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UserEntity } from './entities/user.entity';
-import { UserStatus } from '@prisma/client';
+import { UserStatus, Invitation, InvitationStatus } from '@prisma/client';
 import { AcceptInvitationDto } from './dto/accept-invitation.dto';
+import { AuthService } from '../auth/auth.service'; 
+import { randomBytes } from 'crypto';
 
 @Injectable()
 export class UsersService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private authService: AuthService, 
+  ) {}
 
   async create(createUserDto: CreateUserDto): Promise<UserEntity> {
+    if (createUserDto.email) {
+      const existingEmail = await this.prisma.user.findUnique({ where: { email: createUserDto.email } });
+      if (existingEmail) {
+        throw new BadRequestException('A user with this email already exists');
+      }
+    }
+    if (createUserDto.username) {
+      const existingUsername = await this.prisma.user.findFirst({ where: { username: createUserDto.username } });
+      if (existingUsername) {
+        throw new BadRequestException('A user with this username already exists');
+      }
+    }
+    if (createUserDto.phone) {
+      const existingPhone = await this.prisma.user.findUnique({ where: { phone: createUserDto.phone } });
+      if (existingPhone) {
+        throw new BadRequestException('A user with this phone number already exists');
+      }
+    }
+    
+    let hashedPassword: string | undefined;
+    if (createUserDto.password) {
+      hashedPassword = await this.authService.hashPassword(createUserDto.password);
+    }
+    
     return this.prisma.user.create({
       data: {
         ...createUserDto,
+        password: hashedPassword,
         pay_service_charge: createUserDto.pay_service_charge ?? true,
         created_at: new Date(),
         status: createUserDto.status ?? UserStatus.PENDING,
@@ -42,8 +72,7 @@ export class UsersService {
       }
     }
 
-    // Check if email already exists
-    const existingUser = await this.prisma.user.findUnique({ where: { email } });
+     const existingUser = await this.prisma.user.findUnique({ where: { email } });
     if (existingUser) {
       throw new BadRequestException(`User with email ${email} already exists`);
     }
@@ -61,22 +90,184 @@ export class UsersService {
     });
   }
 
-  async acceptInvitation(userId: number, acceptInvitationDto: AcceptInvitationDto): Promise<UserEntity> {
+  async inviteUsersBulk(
+    inviteUsersDto: BulkInviteUsersDto,
+    sender ,
+   ): Promise<{
+    successful: { email: string; invitationId: number }[];
+    failed: { email: string; error: string }[];
+  }> {
+    const { users } = inviteUsersDto; 
+console.log(sender.role  );
+console.log(sender  );
+
+    // Check for duplicate emails in the input list
+    const emailSet = new Set<string>();
+    const duplicates: string[] = [];
+    users.forEach(user => {
+      if (emailSet.has(user.email)) {
+        duplicates.push(user.email);
+      } else {
+        emailSet.add(user.email);
+      }
+    });
+
+    if (duplicates.length > 0) {
+      throw new BadRequestException(`Duplicate emails found in the input: ${duplicates.join(', ')}`);
+    }
+
+    // Validate role_id, society_id, and flat_id for each user
+    const failed: { email: string; error: string }[] = [];
+    const validUsers: CreateUserDto[] = [];
+
+    for (const user of users) {
+      const { role_id, society_id, flat_id } = user;
+
+      // Validate role
+      const role = await this.prisma.role.findUnique({ where: { id: role_id } });
+      if (!role) {
+        failed.push({ email: user.email, error: `Role with ID ${role_id} not found` });
+        continue;
+      }
+
+      // Validate society
+      const society = await this.prisma.society.findUnique({ where: { id: society_id } });
+      if (!society) {
+        failed.push({ email: user.email, error: `Society with ID ${society_id} not found` });
+        continue;
+      } 
+
+      // Validate flat (if provided)
+      if (flat_id) {
+        const flat = await this.prisma.flat.findUnique({ where: { id: flat_id } });
+        if (!flat) {
+          failed.push({ email: user.email, error: `Flat with ID ${flat_id} not found` });
+          continue;
+        }
+      }
+
+      validUsers.push(user);
+    }
+
+    // Filter out users that failed validation
+    const usersToInvite = validUsers.filter(user => !failed.some(f => f.email === user.email));
+
+    // Check for existing users
+    const existingUsers = await this.prisma.user.findMany({
+      where: {
+        email: { in: usersToInvite.map(user => user.email) },
+      },
+    });
+
+    const existingEmailMap = new Map(existingUsers.map(user => [user.email, user]));
+
+    // Create invitations for all users (existing or new)
+    const invitations: Invitation[] = await this.prisma.$transaction(async (tx) => {
+      
+      const createdInvitations: Invitation[] = [];
+  
+      for (const user of usersToInvite) {
+        console.log('rx',  sender);
+
+        const expiresAt = new Date();
+        expiresAt.setDate(expiresAt.getDate() + 30); // Invitation expires in 30 days
+  
+        // If the user doesn't exist, create them
+        let userRecord = existingEmailMap.get(user.email);
+        if (!userRecord) {
+          userRecord = await tx.user.create({
+            data: {
+              fullname: user.fullname,
+              email: user.email,
+              role_id: user.role_id,
+              society_id: sender.society,
+              flat_id: user.flat_id || null,
+              status: UserStatus.PENDING,
+              created_at: new Date(),
+            },
+          });
+        }
+  
+        // Create an invitation
+        const token = randomBytes(32).toString('hex');
+        const invitation = await tx.invitation.create({
+          data: {
+            email: user.email,
+            token,
+            status: InvitationStatus.PENDING,
+            society_id: user.society_id,
+            inviter_id: sender.id,
+            user_id: userRecord.id,
+            createdAt: new Date(),
+            expiresAt,
+          },
+        });
+  
+        createdInvitations.push(invitation);
+      }
+  
+      return createdInvitations;
+    });
+ 
+    return {
+      successful: invitations.map(inv => ({ email: inv.email, invitationId: inv.id })),
+      failed,
+    };
+  }
+
+  async acceptInvitation(userId: number, token: string, acceptInvitationDto: AcceptInvitationDto): Promise<UserEntity> {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) {
       throw new NotFoundException(`User with ID ${userId} not found`);
     }
-
-    if (user.status !== UserStatus.PENDING) {
-      throw new BadRequestException(`User is not in PENDING status`);
+    const invitation = await this.prisma.invitation.findUnique({
+      where: { token },
+      include: { user: true, society: true },
+    });
+  
+    if (!invitation) {
+      throw new NotFoundException('Invitation not found');
     }
+  
+    if (invitation.status !== 'PENDING') {
+      throw new BadRequestException(`Invitation is already ${invitation.status}`);
+    }
+  
+    const now = new Date();
+    if (now > invitation.expiresAt) {
+      await this.prisma.invitation.update({
+        where: { id: invitation.id },
+        data: { status: 'EXPIRED' },
+      });
+      throw new BadRequestException('Invitation has expired');
+    } 
+
+    if (acceptInvitationDto.username) {
+      const existingUsername = await this.prisma.user.findFirst({
+        where: { username: acceptInvitationDto.username },
+      });
+      if (existingUsername && existingUsername.id !== userId) {
+        throw new BadRequestException('A user with this username already exists');
+      }
+    }
+
+    const hashedPassword = await this.authService.hashPassword(acceptInvitationDto.password);
+    
+    await this.prisma.invitation.update({
+      where: { id: invitation.id },
+      data: {
+        status: 'ACCEPTED',
+        acceptedAt: new Date(),
+      },
+    });
 
     return this.prisma.user.update({
       where: { id: userId },
       data: {
         username: acceptInvitationDto.username,
-        password: acceptInvitationDto.password, // In production, hash the password
+        password: hashedPassword,
         alias: acceptInvitationDto.alias,
+        phone: acceptInvitationDto.phone,
         service_type: acceptInvitationDto.service_type,
         status: UserStatus.ACTIVE,
       },
@@ -131,7 +322,8 @@ export class UsersService {
         society_id: societyId,
       },
       include: {
-        role: true, // Include role details for better context
+        role: true,
+        society: true,
       },
     });
   }
@@ -153,9 +345,43 @@ export class UsersService {
     if (!user) {
       throw new NotFoundException(`User with ID ${id} not found`);
     }
+
+    if (updateUserDto.email && updateUserDto.email !== user.email) {
+      const existingEmail = await this.prisma.user.findUnique({
+        where: { email: updateUserDto.email },
+      });
+      if (existingEmail) {
+        throw new BadRequestException('A user with this email already exists');
+      }
+    }
+    if (updateUserDto.username && updateUserDto.username !== user.username) {
+      const existingUsername = await this.prisma.user.findFirst({
+        where: { username: updateUserDto.username },
+      });
+      if (existingUsername) {
+        throw new BadRequestException('A user with this username already exists');
+      }
+    }
+    if (updateUserDto.phone && updateUserDto.phone !== user.phone) {
+      const existingPhone = await this.prisma.user.findUnique({
+        where: { phone: updateUserDto.phone },
+      });
+      if (existingPhone) {
+        throw new BadRequestException('A user with this phone number already exists');
+      }
+    }
+
+    let hashedPassword: string | undefined;
+    if (updateUserDto.password) {
+      hashedPassword = await this.authService.hashPassword(updateUserDto.password);
+    }
+
     return this.prisma.user.update({
       where: { id },
-      data: updateUserDto,
+      data: {
+        ...updateUserDto,
+        password: hashedPassword ?? user.password,
+      },
     });
   }
 

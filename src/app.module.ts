@@ -11,6 +11,10 @@ import { FlatsModule } from './flats/flats.module';
 import { PaymentsModule } from './payments/payments.module';
 import { ConfigModule } from '@nestjs/config';
 import { RolesModule } from './roles/roles.module';
+import { AuthModule } from './auth/auth.module';
+import { PrismaService } from './prisma/prisma.service';
+import { APP_GUARD } from '@nestjs/core';
+import { JwtAuthGuard } from './auth/jwt/jwt-auth.guard';
 
 @Module({
   imports: [
@@ -22,9 +26,18 @@ import { RolesModule } from './roles/roles.module';
     ServiceChargesModule, 
     UserServiceChargesModule,
     FlatsModule, 
-    PaymentsModule, RolesModule
+    PaymentsModule, 
+    RolesModule, 
+    AuthModule
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    PrismaService,
+    {
+      provide: APP_GUARD,
+      useClass: JwtAuthGuard,  
+    }, 
+  ],
 })
 export class AppModule {}

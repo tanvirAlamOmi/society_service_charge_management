@@ -3,7 +3,11 @@ import { Society as PrismaSociety } from '@prisma/client';
 export class SocietyEntity implements PrismaSociety {
   id: number;
   name: string;
-  owners: number;
-  flats: number;
+  address: string | null;  
+  postal_code: string | null;  
+  city: string | null;  
+  state: string | null;  
+  country: string | null;  
   created_at: Date;
+  total_flats: number;
 }
