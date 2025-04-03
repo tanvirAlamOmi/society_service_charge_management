@@ -15,6 +15,8 @@ import { AuthModule } from './auth/auth.module';
 import { PrismaService } from './prisma/prisma.service';
 import { APP_GUARD } from '@nestjs/core';
 import { JwtAuthGuard } from './auth/jwt/jwt-auth.guard';
+import { CustomLoggerService } from 'src/common/logger/custom-logger.service';
+import { AllExceptionsFilter } from 'src/common/filters/all-exceptions.filter';
 
 @Module({
   imports: [
@@ -34,6 +36,8 @@ import { JwtAuthGuard } from './auth/jwt/jwt-auth.guard';
   providers: [
     AppService,
     PrismaService,
+    CustomLoggerService, 
+    AllExceptionsFilter,
     {
       provide: APP_GUARD,
       useClass: JwtAuthGuard,  

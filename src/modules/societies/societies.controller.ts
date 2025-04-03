@@ -3,7 +3,7 @@ import { SocietiesService } from './societies.service';
 import { CreateSocietyDto } from './dto/create-society.dto';
 import { UpdateSocietyDto } from './dto/update-society.dto';
 import { SocietyEntity } from './entities/society.entity';
-import { Public } from 'src/auth/decorators/public.decorator';
+import { Public } from 'src/modules/auth/decorators/public.decorator';
 
 @Controller('societies')
 export class SocietiesController {

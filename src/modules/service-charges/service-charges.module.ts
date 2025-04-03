@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ServiceChargesService } from './service-charges.service';
 import { ServiceChargesController } from './service-charges.controller';
-import { PrismaService } from 'src/prisma/prisma.service';
+import { PrismaService } from 'src/modules/prisma/prisma.service';
 
 @Module({
   controllers: [ServiceChargesController],

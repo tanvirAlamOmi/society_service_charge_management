@@ -5,7 +5,7 @@ import { BulkInviteUsersDto, CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto'; 
 import { UserEntity } from './entities/user.entity';
 import { AcceptInvitationDto } from './dto/accept-invitation.dto';
-import { Public } from 'src/auth/decorators/public.decorator';
+import { Public } from 'src/modules/auth/decorators/public.decorator';
  
 
 @Controller('users')
