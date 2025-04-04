@@ -5,9 +5,16 @@ import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  app.use((req, res, next) => {
+      res.header('Access-Control-Allow-Origin', '*');
+      res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE');
+      res.header('Access-Control-Allow-Headers', 'Content-Type, Accept');
+      next();
+  });
+
   app.enableCors({
-    origin: '*', // <-- your frontend domain ['http://localhost:8080']
-    credentials: true,                // If you're using cookies or auth headers
+      allowedHeaders:"*",
+      origin: "*"
   });
   const allExceptionsFilter = app.get(AllExceptionsFilter);
   app.useGlobalFilters(allExceptionsFilter);
