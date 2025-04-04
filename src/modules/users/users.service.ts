@@ -35,7 +35,21 @@ export class UsersService {
         throw new BadRequestException('A user with this phone number already exists');
       }
     }
-    
+ 
+    if (createUserDto.role_id) {
+      const roleExists = await this.prisma.role.findUnique({  where: { id: createUserDto.role_id } });
+      if (!roleExists) {
+        throw new BadRequestException(`Role with ID ${createUserDto.role_id} does not exist`);
+      }
+    }
+
+    if (createUserDto.society_id) {
+      const societyExists = await this.prisma.society.findUnique({ where: { id: createUserDto.society_id } });
+      if (!societyExists) {
+        throw new BadRequestException(`Society with ID ${createUserDto.society_id} does not exist`);
+      }
+    }
+
     let hashedPassword: string | undefined;
     if (createUserDto.password) {
       hashedPassword = await this.authService.hashPassword(createUserDto.password);
