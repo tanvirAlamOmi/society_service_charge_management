@@ -106,15 +106,13 @@ export class UsersService {
 
   async inviteUsersBulk(
     inviteUsersDto: BulkInviteUsersDto,
-    sender ,
+    sender? ,
    ): Promise<{
     successful: { email: string; invitationId: number }[];
     failed: { email: string; error: string }[];
   }> {
-    const { users } = inviteUsersDto; 
-console.log(sender.role  );
-console.log(sender  );
-
+    const { users } = inviteUsersDto;  
+ 
     // Check for duplicate emails in the input list
     const emailSet = new Set<string>();
     const duplicates: string[] = [];
@@ -180,9 +178,7 @@ console.log(sender  );
       
       const createdInvitations: Invitation[] = [];
   
-      for (const user of usersToInvite) {
-        console.log('rx',  sender);
-
+      for (const user of usersToInvite) { 
         const expiresAt = new Date();
         expiresAt.setDate(expiresAt.getDate() + 30); // Invitation expires in 30 days
   
@@ -194,7 +190,7 @@ console.log(sender  );
               fullname: user.fullname,
               email: user.email,
               role_id: user.role_id,
-              society_id: sender.society,
+              society_id: user.society_id,
               flat_id: user.flat_id || null,
               status: UserStatus.PENDING,
               created_at: new Date(),
@@ -210,7 +206,7 @@ console.log(sender  );
             token,
             status: InvitationStatus.PENDING,
             society_id: user.society_id,
-            inviter_id: sender.id,
+            inviter_id: sender?.id || null,
             user_id: userRecord.id,
             createdAt: new Date(),
             expiresAt,
@@ -222,9 +218,10 @@ console.log(sender  );
   
       return createdInvitations;
     });
+ console.log(invitations);
  
     return {
-      successful: invitations.map(inv => ({ email: inv.email, invitationId: inv.id })),
+      successful: invitations.map(inv => ({ id:inv.user_id, email: inv.email, invitationId: inv.id })),
       failed,
     };
   }

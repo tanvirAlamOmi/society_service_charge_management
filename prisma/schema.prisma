@@ -168,8 +168,7 @@ model Invitation {
   token      String           @unique
   status     InvitationStatus @default(PENDING)
   society_id Int
-  inviter_id Int
-  inviter    User             @relation(fields: [inviter_id], references: [id], name: "Inviter")
+  inviter_id Int?
   user_id    Int?
   createdAt  DateTime         @default(now())
   expiresAt  DateTime
@@ -177,4 +176,6 @@ model Invitation {
 
   society Society @relation(fields: [society_id], references: [id])
   user    User?   @relation(fields: [user_id], references: [id], name: "Invitee")
+  inviter User?   @relation(fields: [inviter_id], references: [id], name: "Inviter")
+
 }

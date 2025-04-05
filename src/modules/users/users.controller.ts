@@ -18,11 +18,13 @@ export class UsersController {
     return this.usersService.create(createUserDto);
   }
 
+  @Public()
   @Post('invite') 
   inviteUser(@Body() inviteUserDto: CreateUserDto): Promise<UserEntity> {
     return this.usersService.inviteUser(inviteUserDto);
   }
  
+  @Public()
   @Post('invite/bulk')
    async inviteUsersBulk(@Body() bulkInviteUsersDto: BulkInviteUsersDto, @Request() req ) {
     return this.usersService.inviteUsersBulk(bulkInviteUsersDto, req.user );

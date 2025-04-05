@@ -5,6 +5,7 @@ import { CreateFlatDto } from './dto/create-flat.dto';
 import { UpdateFlatDto } from './dto/update-flat.dto';
 import { FlatEntity } from './entities/flat.entity';
 import { BulkCreateFlatsDto } from './dto/create-bulk-flat.dto';
+import { Public } from '../auth/decorators/public.decorator';
 
 @Controller('flats')
 export class FlatsController {
@@ -15,6 +16,7 @@ export class FlatsController {
     return this.flatsService.create(createFlatDto);
   }
 
+  @Public()
   @Post('bulk')
   async createBulkFlats(@Body() bulkCreateFlatsDto: BulkCreateFlatsDto) {
     return this.flatsService.createBulkFlats(bulkCreateFlatsDto);
