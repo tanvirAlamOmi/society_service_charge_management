@@ -22,7 +22,7 @@ async function bootstrap() {
       origin: 'https://rnfwb-27-147-204-249.a.free.pinggy.link', // Reflects the request origin
       methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
       allowedHeaders: 'Content-Type, Accept, Authorization',
-      credentials: true,
+      credentials: false,
     }),
   );
   
