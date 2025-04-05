@@ -19,7 +19,7 @@ async function bootstrap() {
 
   app.use(
     cors({
-      origin: true, // Reflects the request origin
+      origin: 'https://rnjoq-27-147-204-249.a.free.pinggy.link/', // Reflects the request origin
       methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
       allowedHeaders: 'Content-Type, Accept, Authorization',
       credentials: true,
