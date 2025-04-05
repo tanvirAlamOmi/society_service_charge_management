@@ -7,10 +7,6 @@ import { Public } from './decorators/public.decorator';
 @Controller('auth')
 export class AuthController {
   constructor(private authService: AuthService) {}
-  @Options('login')
-  handleOptions() {
-    return; // The cors middleware will add the necessary headers
-  }
 
   @Public()
   @Post('login')
