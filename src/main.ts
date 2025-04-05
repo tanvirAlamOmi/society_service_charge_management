@@ -6,6 +6,12 @@ import * as cors from 'cors';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  
+  app.use((req, res, next) => {
+    console.log(`Received ${req.method} request to ${req.url}`);
+    console.log('Headers:', req.headers);
+    next();
+  });
 
   app.use(
     cors({
@@ -16,22 +22,22 @@ async function bootstrap() {
     }),
   );
   
-  // const allExceptionsFilter = app.get(AllExceptionsFilter);
-  // app.useGlobalFilters(allExceptionsFilter);
-  // app.useGlobalPipes(
-  //   new ValidationPipe({
-  //     skipMissingProperties: true,
-  //     skipUndefinedProperties: true,
-  //     skipNullProperties: true,
-  //     transform: true,
-  //     whitelist: true,
-  //     forbidNonWhitelisted: true,
-  //     // Skip validation for OPTIONS requests
-  //     transformOptions: {
-  //       enableImplicitConversion: true,
-  //     },
-  //   }),
-  // );
+  const allExceptionsFilter = app.get(AllExceptionsFilter);
+  app.useGlobalFilters(allExceptionsFilter);
+  app.useGlobalPipes(
+    new ValidationPipe({
+      skipMissingProperties: true,
+      skipUndefinedProperties: true,
+      skipNullProperties: true,
+      transform: true,
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      // Skip validation for OPTIONS requests
+      transformOptions: {
+        enableImplicitConversion: true,
+      },
+    }),
+  );
   await app.listen(process.env.PORT ?? 3000);
 }
 bootstrap();
