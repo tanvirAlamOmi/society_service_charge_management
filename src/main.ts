@@ -20,9 +20,10 @@ async function bootstrap() {
   app.use(
     cors({
       origin: 'https://rnfwb-27-147-204-249.a.free.pinggy.link', // Reflects the request origin
-      methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-      allowedHeaders: 'Content-Type, Accept, Authorization',
+      methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'] ,
+      allowedHeaders: ['Content-Type', 'Accept', 'Authorization'],
       credentials: false,
+      preflightContinue: false, // Ensure the cors middleware handles OPTIONS requests
     }),
   );
   
