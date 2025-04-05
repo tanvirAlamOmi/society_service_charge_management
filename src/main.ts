@@ -17,16 +17,22 @@ async function bootstrap() {
     next();
   });
 
-  app.use(
-    cors({
-      origin: 'https://rnfwb-27-147-204-249.a.free.pinggy.link', // Reflects the request origin
-      methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'] ,
-      allowedHeaders: ['Content-Type', 'Accept', 'Authorization'],
-      credentials: false,
-      preflightContinue: false, // Ensure the cors middleware handles OPTIONS requests
-    }),
-  );
+  // app.use(
+  //   cors({
+  //     origin: 'https://rnfwb-27-147-204-249.a.free.pinggy.link', // Reflects the request origin
+  //     methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'] ,
+  //     allowedHeaders: ['Content-Type', 'Accept', 'Authorization'],
+  //     credentials: false,
+  //     preflightContinue: false, // Ensure the cors middleware handles OPTIONS requests
+  //   }),
+  // );
   
+  app.enableCors({
+    origin: 'https://rnfwb-27-147-204-249.a.free.pinggy.link',
+    methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Accept', 'Authorization'],
+    credentials: false,
+  });
   // const allExceptionsFilter = app.get(AllExceptionsFilter);
   // app.useGlobalFilters(allExceptionsFilter);
   // app.useGlobalPipes(
