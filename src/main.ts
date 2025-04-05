@@ -3,13 +3,17 @@ import { AppModule } from './modules/app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import * as cors from 'cors';
+import logger from './common/logger/custom-logger.service';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  
+
   app.use((req, res, next) => {
-    console.log(`Received ${req.method} request to ${req.url}`);
-    console.log('Headers:', req.headers);
+    logger.info('Incoming request', {
+      method: req.method,
+      url: req.url,
+      headers: req.headers,
+    });
     next();
   });
 
@@ -22,22 +26,22 @@ async function bootstrap() {
     }),
   );
   
-  const allExceptionsFilter = app.get(AllExceptionsFilter);
-  app.useGlobalFilters(allExceptionsFilter);
-  app.useGlobalPipes(
-    new ValidationPipe({
-      skipMissingProperties: true,
-      skipUndefinedProperties: true,
-      skipNullProperties: true,
-      transform: true,
-      whitelist: true,
-      forbidNonWhitelisted: true,
-      // Skip validation for OPTIONS requests
-      transformOptions: {
-        enableImplicitConversion: true,
-      },
-    }),
-  );
+  // const allExceptionsFilter = app.get(AllExceptionsFilter);
+  // app.useGlobalFilters(allExceptionsFilter);
+  // app.useGlobalPipes(
+  //   new ValidationPipe({
+  //     skipMissingProperties: true,
+  //     skipUndefinedProperties: true,
+  //     skipNullProperties: true,
+  //     transform: true,
+  //     whitelist: true,
+  //     forbidNonWhitelisted: true,
+  //     // Skip validation for OPTIONS requests
+  //     transformOptions: {
+  //       enableImplicitConversion: true,
+  //     },
+  //   }),
+  // );
   await app.listen(process.env.PORT ?? 3000);
 }
 bootstrap();
