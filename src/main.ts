@@ -16,22 +16,22 @@ async function bootstrap() {
     }),
   );
   
-  const allExceptionsFilter = app.get(AllExceptionsFilter);
-  app.useGlobalFilters(allExceptionsFilter);
-  app.useGlobalPipes(
-    new ValidationPipe({
-      skipMissingProperties: true,
-      skipUndefinedProperties: true,
-      skipNullProperties: true,
-      transform: true,
-      whitelist: true,
-      forbidNonWhitelisted: true,
-      // Skip validation for OPTIONS requests
-      transformOptions: {
-        enableImplicitConversion: true,
-      },
-    }),
-  );
+  // const allExceptionsFilter = app.get(AllExceptionsFilter);
+  // app.useGlobalFilters(allExceptionsFilter);
+  // app.useGlobalPipes(
+  //   new ValidationPipe({
+  //     skipMissingProperties: true,
+  //     skipUndefinedProperties: true,
+  //     skipNullProperties: true,
+  //     transform: true,
+  //     whitelist: true,
+  //     forbidNonWhitelisted: true,
+  //     // Skip validation for OPTIONS requests
+  //     transformOptions: {
+  //       enableImplicitConversion: true,
+  //     },
+  //   }),
+  // );
   await app.listen(process.env.PORT ?? 3000);
 }
 bootstrap();
