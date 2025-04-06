@@ -6,16 +6,7 @@ import * as cors from 'cors';
 import logger from './common/logger/custom-logger.service';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
-
-  app.use((req, res, next) => {
-    logger.info('Incoming request', {
-      method: req.method,
-      url: req.url,
-      headers: req.headers,
-    });
-    next();
-  });
+  const app = await NestFactory.create(AppModule); 
 
   // app.use(
   //   cors({
