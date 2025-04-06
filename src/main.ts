@@ -19,7 +19,7 @@ async function bootstrap() {
   // );
   
   app.enableCors({
-    origin: 'https://rnfwb-27-147-204-249.a.free.pinggy.link',
+    origin: 'https://flatwise.tanapps.com/login',
     methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Accept', 'Authorization'],
     credentials: false,
