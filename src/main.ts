@@ -19,7 +19,7 @@ async function bootstrap() {
   // );
   
   app.enableCors({
-    origin: 'https://flatwise.tanapps.com/login',
+    origin: 'https://flatwise.tanapps.com',
     methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Accept', 'Authorization'],
     credentials: false,

@@ -20,28 +20,28 @@ import { AllExceptionsFilter } from 'src/common/filters/all-exceptions.filter';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
-    PrismaModule, 
-    UsersModule, 
-    SocietiesModule, 
-    PredefinedServiceChargesModule, 
-    ServiceChargesModule, 
-    UserServiceChargesModule,
-    FlatsModule, 
-    PaymentsModule, 
-    RolesModule, 
-    AuthModule
+    // ConfigModule.forRoot({ isGlobal: true }),
+    // PrismaModule, 
+    // UsersModule, 
+    // SocietiesModule, 
+    // PredefinedServiceChargesModule, 
+    // ServiceChargesModule, 
+    // UserServiceChargesModule,
+    // FlatsModule, 
+    // PaymentsModule, 
+    // RolesModule, 
+    // AuthModule
   ],
   controllers: [AppController],
   providers: [
     AppService,
-    PrismaService,
-    CustomLoggerService, 
-    AllExceptionsFilter,
-    {
-      provide: APP_GUARD,
-      useClass: JwtAuthGuard,  
-    }, 
+    // PrismaService,
+    // CustomLoggerService, 
+    // AllExceptionsFilter,
+    // {
+    //   provide: APP_GUARD,
+    //   useClass: JwtAuthGuard,  
+    // }, 
   ],
 })
 export class AppModule {}
