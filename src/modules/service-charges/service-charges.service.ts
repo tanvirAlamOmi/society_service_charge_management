@@ -4,7 +4,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateBulkServiceChargeDto, CreateServiceChargeDto } from './dto/create-service-charge.dto';
 import { UpdateServiceChargeDto } from './dto/update-service-charge.dto';
 import { ServiceChargeEntity } from './entities/service-charge.entity';
-import { Prisma } from '@prisma/client';
+import { Prisma, FlatType } from '@prisma/client';
 
 @Injectable()
 export class ServiceChargesService {
@@ -150,5 +150,53 @@ export class ServiceChargesService {
     return this.prisma.serviceCharge.delete({
       where: { id },
     });
+  }
+ 
+  async findBySocietyAndFlatType(societyId: number, flatType: string): Promise<any> {
+    const society = await this.prisma.society.findUnique({ where: { id: societyId } });
+    if (!society) {
+      throw new NotFoundException(`Society with ID ${societyId} not found`);
+    }
+
+    const validFlatTypes = ['TWO_BHK', 'THREE_BHK', 'FOUR_BHK'];
+    const upperFlatType = flatType.toUpperCase();
+    if (!validFlatTypes.includes(upperFlatType)) {
+      throw new BadRequestException(`Invalid flat type: ${flatType}. Must be one of: ${validFlatTypes.join(', ')}`);
+    }
+
+    const serviceCharges = await this.prisma.serviceCharge.findMany({
+      where: { 
+        society_id: societyId,
+        flat_type: upperFlatType as FlatType,
+      },
+      include: {
+        predefined_service_charge: true,
+      },
+    });
+
+    if (serviceCharges.length === 0) {
+      return {
+        society_id: societyId,
+        flat_type: upperFlatType,
+        service_charges: [],
+        total: 0
+      };
+    }
+
+    const formattedCharges = serviceCharges.map(charge => ({
+      predefined_service_charge_id: charge.predefined_service_charge_id,
+      service_type: charge.predefined_service_charge.name,
+      amount: charge.amount.toNumber(),
+    }));
+
+    const total = serviceCharges.reduce((sum, charge) => 
+      sum + charge.amount.toNumber(), 0);
+
+    return {
+      society_id: societyId,
+      flat_type: upperFlatType,
+      service_charges: formattedCharges,
+      total,
+    };
   }
 }

@@ -45,4 +45,12 @@ export class ServiceChargesController {
   remove(@Param('id', ParseIntPipe) id: number): Promise<ServiceChargeEntity> {
     return this.serviceChargesService.remove(id);
   }
+
+  @Get('society/:societyId/flat-type/:flatType')
+  async getServiceChargesBySocietyAndFlatType(
+    @Param('societyId', ParseIntPipe) societyId: number,
+    @Param('flatType') flatType: string,
+  ) { 
+    return await this.serviceChargesService.findBySocietyAndFlatType(societyId, flatType); 
+  }
 }

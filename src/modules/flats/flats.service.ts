@@ -164,4 +164,49 @@ export class FlatsService {
       where: { id },
     });
   }
+
+ 
+  async findBySociety(societyId: number): Promise<FlatEntity[]> {
+    const society = await this.prisma.society.findUnique({ 
+      where: { id: societyId } 
+    });
+    
+    if (!society) {
+      throw new NotFoundException(`Society with ID ${societyId} not found`);
+    }
+
+    return this.prisma.flat.findMany({
+      where: { 
+        society_id: societyId 
+      },
+      include: {
+        society: true,
+        owner: {
+          select: {
+            id: true,
+            fullname: true,
+            email: true,
+            phone: true,
+            status: true
+          }
+        },
+        residents: {
+          include: {
+            resident: {
+              select: {
+                id: true,
+                fullname: true,
+                email: true,
+                phone: true,
+                status: true
+              }
+            }
+          }
+        } 
+      },
+      orderBy: {
+        number: 'asc'  // Optional: sort by flat number
+      }
+    });
+  }
 }
