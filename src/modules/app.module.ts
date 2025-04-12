@@ -20,8 +20,8 @@ import { AllExceptionsFilter } from 'src/common/filters/all-exceptions.filter';
 
 @Module({
   imports: [
-    // ConfigModule.forRoot({ isGlobal: true }),
-    // PrismaModule, 
+    ConfigModule.forRoot({ isGlobal: true }),
+    PrismaModule, 
     // UsersModule, 
     // SocietiesModule, 
     // PredefinedServiceChargesModule, 
@@ -30,12 +30,12 @@ import { AllExceptionsFilter } from 'src/common/filters/all-exceptions.filter';
     // FlatsModule, 
     // PaymentsModule, 
     // RolesModule, 
-    // AuthModule
+    AuthModule
   ],
   controllers: [AppController],
   providers: [
     AppService,
-    // PrismaService,
+    PrismaService,
     // CustomLoggerService, 
     // AllExceptionsFilter,
     // {
