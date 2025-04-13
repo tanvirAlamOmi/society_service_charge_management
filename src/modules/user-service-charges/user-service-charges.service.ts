@@ -1,4 +1,3 @@
-// src/user-service-charges/user-service-charges.service.ts
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateUserServiceChargeDto } from './dto/create-user-service-charge.dto';
@@ -10,9 +9,9 @@ export class UserServiceChargesService {
   constructor(private prisma: PrismaService) {}
 
   async create(createUserServiceChargeDto: CreateUserServiceChargeDto): Promise<UserServiceChargeEntity> {
-    const user = await this.prisma.user.findUnique({ where: { id: createUserServiceChargeDto.user_id } });
-    if (!user) {
-      throw new BadRequestException(`User with ID ${createUserServiceChargeDto.user_id} not found`);
+    const flat = await this.prisma.flat.findUnique({ where: { id: createUserServiceChargeDto.flat_id } });
+    if (!flat) {
+      throw new BadRequestException(`Flat with ID ${createUserServiceChargeDto.flat_id} not found`);
     }
     const predefinedServiceCharge = await this.prisma.predefinedServiceCharge.findUnique({
       where: { id: createUserServiceChargeDto.predefined_service_charge_id },
@@ -36,7 +35,7 @@ export class UserServiceChargesService {
   async findOne(id: number): Promise<UserServiceChargeEntity> {
     const userServiceCharge = await this.prisma.userServiceCharge.findUnique({
       where: { id },
-      include: { user: true, predefined_service_charge: true },
+      include: { flat: true, predefined_service_charge: true },
     });
     if (!userServiceCharge) {
       throw new NotFoundException(`User Service Charge with ID ${id} not found`);

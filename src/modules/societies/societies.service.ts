@@ -1,4 +1,3 @@
-// src/societies/societies.service.ts
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateSocietyDto } from './dto/create-society.dto';

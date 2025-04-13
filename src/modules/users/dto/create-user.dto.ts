@@ -1,4 +1,4 @@
- import { IsString, IsEmail, IsInt, IsBoolean, IsOptional, IsEnum, Matches, IsArray, ValidateNested  } from 'class-validator';
+ import { IsString, IsEmail, IsInt, IsBoolean, IsOptional, IsEnum, Matches, IsArray, ValidateNested, IsNotEmpty  } from 'class-validator';
  import { UserStatus } from '@prisma/client';
  import { Type } from 'class-transformer';
  
@@ -51,8 +51,13 @@ export class CreateUserDto {
 }
 
 export class BulkInviteUsersDto {
-  @IsArray()
+  @IsInt({ message: 'Society ID must be an integer' })
+  @IsNotEmpty({ message: 'Society ID is required' })
+  society_id: number;
+
+  @IsArray({ message: 'Users must be an array' })
   @ValidateNested({ each: true })
   @Type(() => CreateUserDto)
+  @IsNotEmpty({ message: 'Users array cannot be empty' })
   users: CreateUserDto[];
 }

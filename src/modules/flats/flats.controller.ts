@@ -45,8 +45,8 @@ export class FlatsController {
     return this.flatsService.remove(id);
   }
 
-  @Get('flats/:societyId')
-  async getFlatsBySociety( @Param('societyId', ParseIntPipe) societyId: number  ): Promise<FlatEntity[]> { 
+  @Get('society/:societyId')
+    async getFlatsBySociety( @Param('societyId', ParseIntPipe) societyId: number  ): Promise<FlatEntity[]> { 
     return await this.flatsService.findBySociety(societyId);  
   }
 }

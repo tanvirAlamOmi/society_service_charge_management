@@ -167,6 +167,7 @@ export class FlatsService {
 
  
   async findBySociety(societyId: number): Promise<FlatEntity[]> {
+    // Validate the society
     const society = await this.prisma.society.findUnique({ 
       where: { id: societyId } 
     });
@@ -174,13 +175,32 @@ export class FlatsService {
     if (!society) {
       throw new NotFoundException(`Society with ID ${societyId} not found`);
     }
-
-    return this.prisma.flat.findMany({
+  
+    const flats = await this.prisma.flat.findMany({
       where: { 
         society_id: societyId 
       },
       include: {
-        society: true,
+        society: {
+          select: {
+            id: true,
+            name: true, // Include other society fields as needed
+            service_charges: {
+              where: {
+                flat_type: { in: ['TWO_BHK', 'THREE_BHK', 'FOUR_BHK'] }
+              },
+              include: {
+                predefined_service_charge: {
+                  select: {
+                    id: true,
+                    name: true,
+                    description: true
+                  }
+                }
+              }
+            }
+          }
+        },
         owner: {
           select: {
             id: true,
@@ -202,11 +222,37 @@ export class FlatsService {
               }
             }
           }
-        } 
+        },
+        user_service_charges: {
+          include: {
+            predefined_service_charge: {
+              select: {
+                id: true,
+                name: true,
+                description: true
+              }
+            }
+          }
+        }
       },
       orderBy: {
-        number: 'asc'  // Optional: sort by flat number
+        number: 'asc'
       }
     });
+  
+    if (!flats.length) {
+      throw new NotFoundException(`No flats found for society with ID ${societyId}`);
+    }
+  
+    // Filter service_charges to match each flat's flat_type
+    return flats.map(flat => ({
+      ...flat,
+      society: {
+        ...flat.society,
+        service_charges: flat.society.service_charges.filter(
+          serviceCharge => serviceCharge.flat_type === flat.flat_type
+        )
+      }
+    }));
   }
 }

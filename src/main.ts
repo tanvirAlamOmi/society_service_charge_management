@@ -7,19 +7,9 @@ import logger from './common/logger/custom-logger.service';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule); 
-
-  // app.use(
-  //   cors({
-  //     origin: 'https://rnfwb-27-147-204-249.a.free.pinggy.link', // Reflects the request origin
-  //     methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'] ,
-  //     allowedHeaders: ['Content-Type', 'Accept', 'Authorization'],
-  //     credentials: false,
-  //     preflightContinue: false, // Ensure the cors middleware handles OPTIONS requests
-  //   }),
-  // );
-  
+ 
   app.enableCors({
-    origin: 'https://flatwise.tanapps.com',
+    origin: ['https://flatwise.tanapps.com', 'http://localhost:8080'],
     methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Accept', 'Authorization'],
     credentials: false,

@@ -1,4 +1,3 @@
-// src/payments/payments.service.ts
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
@@ -6,6 +5,7 @@ import { CreatePaymentDto } from './dto/create-payment.dto';
 import { UpdatePaymentDto } from './dto/update-payment.dto';
 import { PaymentEntity } from './entities/payment.entity';
 import axios from 'axios';
+import { PaymentStatus } from '@prisma/client';
 
 @Injectable()
 export class PaymentsService {
@@ -17,8 +17,17 @@ export class PaymentsService {
   async create(createPaymentDto: CreatePaymentDto, tranId?: string): Promise<PaymentEntity> {
     return this.prisma.payment.create({
       data: {
-        user_id: createPaymentDto.user_id,
-        service_charge_id: createPaymentDto.service_charge_id,
+        user: {
+          connect: { id: createPaymentDto.user_id }, 
+        },
+        flat:   { 
+          connect: { id: createPaymentDto.flat_id } },   
+        service_charge: {
+          connect: { id: createPaymentDto.service_charge_id },  
+        },
+        society: {
+          connect: { id: createPaymentDto.society_id },  
+        },
         amount: createPaymentDto.amount ?? null,
         status: createPaymentDto.status,
         payment_month: new Date(createPaymentDto.payment_month),
@@ -29,7 +38,7 @@ export class PaymentsService {
   }
 
   async initiatePayment(createPaymentDto: CreatePaymentDto): Promise<any> {
-    const { user_id, service_charge_id, amount, payment_month } = createPaymentDto;
+    const { user_id, flat_id, society_id, service_charge_id, amount, payment_month } = createPaymentDto;
 
     const user = await this.prisma.user.findUnique({ where: { id: user_id } });
     if (!user) throw new BadRequestException(`User with ID ${user_id} not found`);
@@ -62,8 +71,7 @@ export class PaymentsService {
       cus_email: user.email,
       cus_add1: 'Dhaka',
       cus_city: 'Dhaka',
-      cus_country: 'Bangladesh',
-      cus_phone: '01700000000',
+      cus_country: 'Bangladesh', 
     };
 
     try {
@@ -72,8 +80,15 @@ export class PaymentsService {
       });
 
       if (response.data.status === 'SUCCESS') {
-        const payment = await this.create({ ...createPaymentDto, status: 'pending' }, tranId);
-        return { payment, gatewayResponse: response.data };
+        const payment = await this.create({ ...createPaymentDto, status: PaymentStatus.SUCCESS }, tranId);
+        
+        const paymentUrl = response.data.GatewayPageURL; // Adjust based on actual response structure
+
+        // Return the desired response format
+        return {
+          payment_url: paymentUrl,
+          payment_id: payment.id,
+        };
       } else {
         throw new BadRequestException('Failed to initiate payment: ' + response.data.failedreason);
       }
@@ -120,5 +135,41 @@ export class PaymentsService {
     const payment = await this.prisma.payment.findUnique({ where: { id } });
     if (!payment) throw new NotFoundException(`Payment with ID ${id} not found`);
     return this.prisma.payment.delete({ where: { id } });
+  }
+
+  async findPaymentsByUserId(userId: number, societyId: number): Promise<PaymentEntity[]> {
+    // Validate user existence
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      throw new BadRequestException(`User with ID ${userId} not found`);
+    }
+  
+    // Validate society existence
+    const society = await this.prisma.society.findUnique({ where: { id: societyId } });
+    if (!society) {
+      throw new BadRequestException(`Society with ID ${societyId} not found`);
+    }
+  
+    // Fetch payments filtered by both user_id and society_id
+    return this.prisma.payment.findMany({
+      where: {
+        user_id: userId,
+        society_id: societyId,
+      },
+      
+    });
+  }
+
+  async findPaymentsBySocietyId(societyId: number): Promise<PaymentEntity[]> {
+    const society = await this.prisma.society.findUnique({ where: { id: societyId } });
+    if (!society) {
+      throw new BadRequestException(`Society with ID ${societyId} not found`);
+    }
+
+    return this.prisma.payment.findMany({
+      where: {
+        society_id: societyId,
+      } 
+    });
   }
 }

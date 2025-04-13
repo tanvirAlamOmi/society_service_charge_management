@@ -8,4 +8,5 @@ export class ServiceChargeEntity implements PrismaServiceCharge {
   flat_type: FlatType;
   amount: Decimal;
   created_at: Date;
+  updated_at: Date;
 }

@@ -1,4 +1,3 @@
-// src/service-charges/service-charges.controller.ts
 import { Controller, Get, Post, Body, Patch, Param, Delete, ParseIntPipe } from '@nestjs/common';
 import { ServiceChargesService } from './service-charges.service';
 import { CreateBulkServiceChargeDto, CreateServiceChargeDto } from './dto/create-service-charge.dto';

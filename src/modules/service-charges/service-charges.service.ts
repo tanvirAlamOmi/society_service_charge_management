@@ -1,4 +1,3 @@
-// src/service-charges/service-charges.service.ts
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateBulkServiceChargeDto, CreateServiceChargeDto } from './dto/create-service-charge.dto';
@@ -59,6 +58,12 @@ export class ServiceChargesService {
         });
       }
     }
+
+    await this.prisma.serviceCharge.deleteMany({
+      where: {
+        society_id 
+       },
+    });
 
     await this.prisma.serviceCharge.createMany({
       data: serviceChargeData,

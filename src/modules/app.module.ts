@@ -17,6 +17,8 @@ import { APP_GUARD } from '@nestjs/core';
 import { JwtAuthGuard } from './auth/jwt/jwt-auth.guard';
 import { CustomLoggerService } from 'src/common/logger/custom-logger.service';
 import { AllExceptionsFilter } from 'src/common/filters/all-exceptions.filter';
+import { RegistrationPaymentModule } from './registration-payment/registration-payment.module';
+import { PricingModule } from './pricing/pricing.module';
 
 @Module({
   imports: [
@@ -30,7 +32,7 @@ import { AllExceptionsFilter } from 'src/common/filters/all-exceptions.filter';
     FlatsModule, 
     PaymentsModule, 
     RolesModule, 
-    AuthModule
+    AuthModule, RegistrationPaymentModule, PricingModule
   ],
   controllers: [AppController],
   providers: [

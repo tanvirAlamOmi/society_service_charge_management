@@ -10,7 +10,7 @@ export class AuthController {
   
   @Public()
   @Post('login')
-  // @HttpCode(HttpStatus.OK)
+  @HttpCode(HttpStatus.OK)
    async login(@Body() loginDto: LoginDto) {
     return this.authService.login(loginDto.email, loginDto.password);
   }

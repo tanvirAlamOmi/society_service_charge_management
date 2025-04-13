@@ -14,5 +14,6 @@ export class UserEntity implements PrismaUser {
   service_type: string | null;
   pay_service_charge: boolean;
   created_at: Date;
+  updated_at: Date;
   status: UserStatus;  
 }

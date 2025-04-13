@@ -1,4 +1,3 @@
-// src/users/users.controller.ts
 import { Controller, Get, Post, Body, Patch, Param, Delete, ParseIntPipe, Request } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { BulkInviteUsersDto, CreateUserDto } from './dto/create-user.dto'; 
@@ -50,10 +49,10 @@ export class UsersController {
     return this.usersService.markUserInactive(id);
   }
 
-  @Get('society/:societyId/invited') 
-  findUsersBySociety(@Param('societyId', ParseIntPipe) societyId: number): Promise<UserEntity[]> {
-    return this.usersService.findUsersBySociety(societyId);
-  }
+  // @Get('society/:societyId/invited') 
+  // findUsersBySociety(@Param('societyId', ParseIntPipe) societyId: number): Promise<UserEntity[]> {
+  //   return this.usersService.findUsersBySociety(societyId);
+  // }
 
    @Get() 
   findAll(): Promise<UserEntity[]> {
@@ -76,5 +75,15 @@ export class UsersController {
   @Delete(':id') 
   remove(@Param('id', ParseIntPipe) id: number): Promise<UserEntity> {
     return this.usersService.remove(id);
+  }
+
+  @Get('society/:societyId')
+  async findUsersBySocietyRoles(
+    @Param('societyId', ParseIntPipe) societyId: number,
+  ): Promise<{
+    owners: UserEntity[];
+    residents: UserEntity[];
+  }> {
+    return this.usersService.findUsersBySociety(societyId);
   }
 }

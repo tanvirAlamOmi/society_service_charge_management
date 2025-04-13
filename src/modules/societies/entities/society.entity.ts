@@ -9,5 +9,8 @@ export class SocietyEntity implements PrismaSociety {
   state: string | null;  
   country: string | null;  
   created_at: Date;
+  updated_at: Date;
   total_flats: number;
+  location_lat: number | null;
+  location_lng: number | null;
 }

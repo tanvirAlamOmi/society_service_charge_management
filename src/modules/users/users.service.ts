@@ -1,4 +1,3 @@
-// src/users/users.service.ts
 import { Injectable, NotFoundException, BadRequestException, UnauthorizedException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { BulkInviteUsersDto, CreateUserDto } from './dto/create-user.dto';  
@@ -104,15 +103,142 @@ export class UsersService {
     });
   }
 
+  // async inviteUsersBulk(
+  //   inviteUsersDto: BulkInviteUsersDto,
+  //   sender? ,
+  //  ): Promise<{
+  //   successful: { email: string; invitationId: number }[];
+  //   failed: { email: string; error: string }[];
+  // }> {
+  //   const { users } = inviteUsersDto;  
+ 
+  //   // Check for duplicate emails in the input list
+  //   const emailSet = new Set<string>();
+  //   const duplicates: string[] = [];
+  //   users.forEach(user => {
+  //     if (emailSet.has(user.email)) {
+  //       duplicates.push(user.email);
+  //     } else {
+  //       emailSet.add(user.email);
+  //     }
+  //   });
+
+  //   if (duplicates.length > 0) {
+  //     throw new BadRequestException(`Duplicate emails found in the input: ${duplicates.join(', ')}`);
+  //   }
+
+  //   // Validate role_id, society_id, and flat_id for each user
+  //   const failed: { email: string; error: string }[] = [];
+  //   const validUsers: CreateUserDto[] = [];
+
+  //   for (const user of users) {
+  //     const { role_id, society_id, flat_id } = user;
+
+  //     // Validate role
+  //     const role = await this.prisma.role.findUnique({ where: { id: role_id } });
+  //     if (!role) {
+  //       failed.push({ email: user.email, error: `Role with ID ${role_id} not found` });
+  //       continue;
+  //     }
+
+  //     // Validate society
+  //     const society = await this.prisma.society.findUnique({ where: { id: society_id } });
+  //     if (!society) {
+  //       failed.push({ email: user.email, error: `Society with ID ${society_id} not found` });
+  //       continue;
+  //     } 
+
+  //     // Validate flat (if provided)
+  //     if (flat_id) {
+  //       const flat = await this.prisma.flat.findUnique({ where: { id: flat_id } });
+  //       if (!flat) {
+  //         failed.push({ email: user.email, error: `Flat with ID ${flat_id} not found` });
+  //         continue;
+  //       }
+  //     }
+
+  //     validUsers.push(user);
+  //   }
+
+  //   // Filter out users that failed validation
+  //   const usersToInvite = validUsers.filter(user => !failed.some(f => f.email === user.email));
+
+  //   // Check for existing users
+  //   const existingUsers = await this.prisma.user.findMany({
+  //     where: {
+  //       email: { in: usersToInvite.map(user => user.email) },
+  //     },
+  //   });
+
+  //   const existingEmailMap = new Map(existingUsers.map(user => [user.email, user]));
+
+  //   // Create invitations for all users (existing or new)
+  //   const invitations: Invitation[] = await this.prisma.$transaction(async (tx) => {
+      
+  //     const createdInvitations: Invitation[] = [];
+  
+  //     for (const user of usersToInvite) { 
+  //       const expiresAt = new Date();
+  //       expiresAt.setDate(expiresAt.getDate() + 30); // Invitation expires in 30 days
+  
+  //       // If the user doesn't exist, create them
+  //       let userRecord = existingEmailMap.get(user.email);
+  //       if (!userRecord) {
+  //         userRecord = await tx.user.create({
+  //           data: {
+  //             fullname: user.fullname,
+  //             email: user.email,
+  //             role_id: user.role_id,
+  //             society_id: user.society_id,
+  //             flat_id: user.flat_id || null,
+  //             status: UserStatus.PENDING,
+  //             created_at: new Date(),
+  //           },
+  //         });
+  //       }
+  
+  //       // Create an invitation
+  //       const token = randomBytes(32).toString('hex');
+  //       const invitation = await tx.invitation.create({
+  //         data: {
+  //           email: user.email,
+  //           token,
+  //           status: InvitationStatus.PENDING,
+  //           society_id: user.society_id,
+  //           inviter_id: sender?.id || null,
+  //           user_id: userRecord.id,
+  //           createdAt: new Date(),
+  //           expiresAt,
+  //         },
+  //       });
+  
+  //       createdInvitations.push(invitation);
+  //     }
+  
+  //     return createdInvitations;
+  //   });
+  
+  //   return {
+  //     successful: invitations.map(inv => ({ id:inv.user_id, email: inv.email, invitationId: inv.id })),
+  //     failed,
+  //   };
+  // }
+
   async inviteUsersBulk(
     inviteUsersDto: BulkInviteUsersDto,
-    sender? ,
-   ): Promise<{
-    successful: { email: string; invitationId: number }[];
+    sender?: any,  
+  ): Promise<{
+    successful: { id: number|null; email: string; invitationId: number }[];
     failed: { email: string; error: string }[];
   }> {
-    const { users } = inviteUsersDto;  
- 
+    const { society_id, users } = inviteUsersDto;
+  
+    // Validate society
+    const society = await this.prisma.society.findUnique({ where: { id: society_id } });
+    if (!society) {
+      throw new BadRequestException(`Society with ID ${society_id} not found`);
+    }
+  
     // Check for duplicate emails in the input list
     const emailSet = new Set<string>();
     const duplicates: string[] = [];
@@ -123,32 +249,25 @@ export class UsersService {
         emailSet.add(user.email);
       }
     });
-
+  
     if (duplicates.length > 0) {
       throw new BadRequestException(`Duplicate emails found in the input: ${duplicates.join(', ')}`);
     }
-
-    // Validate role_id, society_id, and flat_id for each user
+  
+    // Validate role_id and flat_id for each user
     const failed: { email: string; error: string }[] = [];
     const validUsers: CreateUserDto[] = [];
-
+  
     for (const user of users) {
-      const { role_id, society_id, flat_id } = user;
-
+      const { role_id, flat_id } = user;
+  
       // Validate role
       const role = await this.prisma.role.findUnique({ where: { id: role_id } });
       if (!role) {
         failed.push({ email: user.email, error: `Role with ID ${role_id} not found` });
         continue;
       }
-
-      // Validate society
-      const society = await this.prisma.society.findUnique({ where: { id: society_id } });
-      if (!society) {
-        failed.push({ email: user.email, error: `Society with ID ${society_id} not found` });
-        continue;
-      } 
-
+  
       // Validate flat (if provided)
       if (flat_id) {
         const flat = await this.prisma.flat.findUnique({ where: { id: flat_id } });
@@ -156,29 +275,33 @@ export class UsersService {
           failed.push({ email: user.email, error: `Flat with ID ${flat_id} not found` });
           continue;
         }
+        // Optionally verify flat belongs to the society
+        if (flat.society_id !== society_id) {
+          failed.push({ email: user.email, error: `Flat with ID ${flat_id} does not belong to society ${society_id}` });
+          continue;
+        }
       }
-
-      validUsers.push(user);
+  
+      validUsers.push({ ...user, society_id }); // Add society_id to valid user for processing
     }
-
+  
     // Filter out users that failed validation
     const usersToInvite = validUsers.filter(user => !failed.some(f => f.email === user.email));
-
+  
     // Check for existing users
     const existingUsers = await this.prisma.user.findMany({
       where: {
         email: { in: usersToInvite.map(user => user.email) },
       },
     });
-
+  
     const existingEmailMap = new Map(existingUsers.map(user => [user.email, user]));
-
+  
     // Create invitations for all users (existing or new)
     const invitations: Invitation[] = await this.prisma.$transaction(async (tx) => {
-      
       const createdInvitations: Invitation[] = [];
   
-      for (const user of usersToInvite) { 
+      for (const user of usersToInvite) {
         const expiresAt = new Date();
         expiresAt.setDate(expiresAt.getDate() + 30); // Invitation expires in 30 days
   
@@ -190,7 +313,7 @@ export class UsersService {
               fullname: user.fullname,
               email: user.email,
               role_id: user.role_id,
-              society_id: user.society_id,
+              society_id, 
               flat_id: user.flat_id || null,
               status: UserStatus.PENDING,
               created_at: new Date(),
@@ -205,7 +328,7 @@ export class UsersService {
             email: user.email,
             token,
             status: InvitationStatus.PENDING,
-            society_id: user.society_id,
+            society_id,  
             inviter_id: sender?.id || null,
             user_id: userRecord.id,
             createdAt: new Date(),
@@ -218,10 +341,9 @@ export class UsersService {
   
       return createdInvitations;
     });
- console.log(invitations);
- 
+  
     return {
-      successful: invitations.map(inv => ({ id:inv.user_id, email: inv.email, invitationId: inv.id })),
+      successful: invitations.map(inv => ({ id: inv.user_id, email: inv.email, invitationId: inv.id })),
       failed,
     };
   }
@@ -322,22 +444,22 @@ export class UsersService {
     });
   }
 
-  async findUsersBySociety(societyId: number): Promise<UserEntity[]> {
-    const society = await this.prisma.society.findUnique({ where: { id: societyId } });
-    if (!society) {
-      throw new NotFoundException(`Society with ID ${societyId} not found`);
-    }
+  // async findUsersBySociety(societyId: number): Promise<UserEntity[]> {
+  //   const society = await this.prisma.society.findUnique({ where: { id: societyId } });
+  //   if (!society) {
+  //     throw new NotFoundException(`Society with ID ${societyId} not found`);
+  //   }
 
-    return this.prisma.user.findMany({
-      where: {
-        society_id: societyId,
-      },
-      include: {
-        role: true,
-        society: true,
-      },
-    });
-  }
+  //   return this.prisma.user.findMany({
+  //     where: {
+  //       society_id: societyId,
+  //     },
+  //     include: {
+  //       role: true,
+  //       society: true,
+  //     },
+  //   });
+  // }
 
   async findAll(): Promise<UserEntity[]> {
     return this.prisma.user.findMany();
@@ -402,5 +524,89 @@ export class UsersService {
       throw new NotFoundException(`User with ID ${id} not found`);
     }
     return this.prisma.user.delete({ where: { id } });
+  }
+
+  async findUsersBySociety(societyId: number): Promise<{
+    owners: UserEntity[];
+    residents: UserEntity[];
+  }> {
+    // Validate the society
+    const society = await this.prisma.society.findUnique({ where: { id: societyId } });
+    if (!society) {
+      throw new NotFoundException(`Society with ID ${societyId} not found`);
+    }
+
+    // Fetch owners (role_id 1 or 2, linked to flats via owner_id)
+    const owners = await this.prisma.user.findMany({
+      where: {
+        society_id: societyId,
+        role_id: { in: [1, 2] },
+        status: { not: 'CANCELLED' }, 
+      },
+      include: {
+        role: {
+          select: {
+            id: true,
+            name: true,
+            description: true,
+          },
+        },
+        society: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        owned_flats: {
+          select: {
+            id: true,
+            number: true,
+            flat_type: true,
+          },
+        },
+      },
+    });
+
+    // Fetch residents (role_id 3, linked to flats via FlatResident)
+    const residents = await this.prisma.user.findMany({
+      where: {
+        society_id: societyId,
+        role_id: 3,
+        status: { not: 'CANCELLED' },
+      },
+      include: {
+        role: {
+          select: {
+            id: true,
+            name: true,
+            description: true,
+          },
+        },
+        society: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        rented_flats: {
+          select: {
+            flat: {
+              select: {
+                id: true,
+                number: true,
+                flat_type: true,
+              },
+            },
+            start_date: true,
+            end_date: true,
+          },
+        },
+      },
+    });
+
+    return {
+      owners,
+      residents,
+    };
   }
 }

@@ -3,6 +3,7 @@ import { PaymentsService } from './payments.service';
 import { CreatePaymentDto } from './dto/create-payment.dto';
 import { UpdatePaymentDto } from './dto/update-payment.dto';
 import { PaymentEntity } from './entities/payment.entity';
+import { PaymentStatus } from '@prisma/client';
 
 @Controller('payments')
 export class PaymentsController {
@@ -23,7 +24,7 @@ export class PaymentsController {
     console.log('Payment Success:', body);
     if (body.status === 'VALID') {
       const payment = await this.paymentsService.updateByTranId(body.tran_id, {
-        status: 'completed',
+        status: PaymentStatus.SUCCESS,
         transaction_details: body,
       });
       return { message: 'Payment successful', payment };
@@ -36,7 +37,7 @@ export class PaymentsController {
     console.log('Payment Failed:', body);
     if (body.status === 'FAILED') {
       const payment = await this.paymentsService.updateByTranId(body.tran_id, {
-        status: 'failed',
+        status: PaymentStatus.FAILED,
         transaction_details: body,
       });
       return { message: 'Payment failed', payment };
@@ -49,7 +50,7 @@ export class PaymentsController {
     console.log('Payment Cancelled:', body);
     if (body.status === 'CANCELLED') {
       const payment = await this.paymentsService.updateByTranId(body.tran_id, {
-        status: 'cancelled',
+        status: PaymentStatus.CANCELLED,
         transaction_details: body,
       });
       return { message: 'Payment cancelled', payment };
@@ -78,5 +79,20 @@ export class PaymentsController {
   @Delete(':id')
   remove(@Param('id', ParseIntPipe) id: number): Promise<PaymentEntity> {
     return this.paymentsService.remove(id);
+  }
+
+  @Get('society/:societyId')
+  findPaymentsBySocietyId(
+    @Param('societyId', ParseIntPipe) societyId: number,
+  ): Promise<PaymentEntity[]> {
+    return this.paymentsService.findPaymentsBySocietyId(societyId);
+  }
+  
+  @Get('society/:societyId/user/:userId')
+  findPaymentsByUserId(
+    @Param('societyId', ParseIntPipe) societyId: number,
+    @Param('userId', ParseIntPipe) userId: number,
+  ): Promise<PaymentEntity[]> {
+    return this.paymentsService.findPaymentsByUserId(userId, societyId);
   }
 }

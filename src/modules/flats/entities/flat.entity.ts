@@ -8,4 +8,5 @@ export class FlatEntity implements PrismaFlat {
   resident_id: number | null;
   flat_type: FlatType;
   created_at: Date;
+  updated_at: Date;
 }
