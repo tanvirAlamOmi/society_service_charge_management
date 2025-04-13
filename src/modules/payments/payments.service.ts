@@ -21,10 +21,7 @@ export class PaymentsService {
           connect: { id: createPaymentDto.user_id }, 
         },
         flat:   { 
-          connect: { id: createPaymentDto.flat_id } },   
-        service_charge: {
-          connect: { id: createPaymentDto.service_charge_id },  
-        },
+          connect: { id: createPaymentDto.flat_id } },    
         society: {
           connect: { id: createPaymentDto.society_id },  
         },
@@ -38,13 +35,11 @@ export class PaymentsService {
   }
 
   async initiatePayment(createPaymentDto: CreatePaymentDto): Promise<any> {
-    const { user_id, flat_id, society_id, service_charge_id, amount, payment_month } = createPaymentDto;
+    const { user_id, flat_id, society_id, amount, payment_month } = createPaymentDto;
 
     const user = await this.prisma.user.findUnique({ where: { id: user_id } });
     if (!user) throw new BadRequestException(`User with ID ${user_id} not found`);
-    const serviceCharge = await this.prisma.serviceCharge.findUnique({ where: { id: service_charge_id } });
-    if (!serviceCharge) throw new BadRequestException(`Service Charge with ID ${service_charge_id} not found`);
-
+    
     const storeId = this.configService.get<string>('STORE_ID');
     const storePasswd = this.configService.get<string>('STORE_PASSWORD');
     const paymentGatewayUrl = this.configService.get<string>('PAYMENT_GATEWAY_URL');
@@ -61,7 +56,7 @@ export class PaymentsService {
     const payload = {
       store_id: storeId,
       store_passwd: storePasswd,
-      total_amount: amount || serviceCharge.amount.toNumber(),
+      total_amount: amount,
       currency: 'BDT',
       tran_id: tranId,
       success_url: successUrl,

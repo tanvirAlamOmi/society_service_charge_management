@@ -5,8 +5,7 @@ export class PaymentEntity implements PrismaPayment {
   id: number;
   user_id: number;
   flat_id: number;
-  society_id: number;
-  service_charge_id: number;
+  society_id: number; 
   amount: Decimal | null;
   status: PaymentStatus;
   payment_month: Date;
@@ -14,4 +13,5 @@ export class PaymentEntity implements PrismaPayment {
   tran_id: string | null;
   transaction_details: any | null;
   currency: string;
+  payment_method: string | null;
 }

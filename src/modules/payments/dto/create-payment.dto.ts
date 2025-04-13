@@ -1,4 +1,3 @@
-// src/payments/dto/create-payment.dto.ts
 import { IsInt, IsNumber, IsString, IsDateString, IsOptional } from 'class-validator';
 import { PaymentStatus } from '@prisma/client';
 
@@ -11,10 +10,7 @@ export class CreatePaymentDto {
 
   @IsInt()
   society_id: number;
-
-  @IsInt()
-  service_charge_id: number;
-
+ 
   @IsNumber()
   @IsOptional()
   amount?: number;
@@ -31,4 +27,7 @@ export class CreatePaymentDto {
 
   currency: string;
 
+  @IsOptional()
+  @IsString()
+  payment_method: string;
 }

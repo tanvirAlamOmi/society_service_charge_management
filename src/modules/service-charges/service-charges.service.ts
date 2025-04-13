@@ -128,7 +128,7 @@ export class ServiceChargesService {
   async findOne(id: number): Promise<ServiceChargeEntity> {
     const serviceCharge = await this.prisma.serviceCharge.findUnique({
       where: { id },
-      include: { society: true, predefined_service_charge: true, payments: true },
+      include: { society: true, predefined_service_charge: true },
     });
     if (!serviceCharge) {
       throw new NotFoundException(`Service Charge with ID ${id} not found`);
