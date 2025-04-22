@@ -2,6 +2,9 @@ import { IsString, IsOptional, Matches } from 'class-validator';
 
 export class AcceptInvitationDto { 
   @IsString()
+  token: string;
+  
+  @IsString()
   username: string;
  
   @IsString()

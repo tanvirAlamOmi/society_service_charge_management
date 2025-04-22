@@ -18,30 +18,30 @@ export class PricingService {
     };
 
     // Calculate flat cost
-    let totalFlatCost = 0;
-    const flatCounts: Record<FlatType, number> = { 
-      [FlatType.TWO_BHK]: 0,
-      [FlatType.THREE_BHK]: 0,
-      [FlatType.FOUR_BHK]: 0,
-    };
+    let totalFlatCost = 500;
+    // const flatCounts: Record<FlatType, number> = { 
+    //   [FlatType.TWO_BHK]: 0,
+    //   [FlatType.THREE_BHK]: 0,
+    //   [FlatType.FOUR_BHK]: 0,
+    // };
 
-    flats.forEach(flat => {
-      totalFlatCost += flatPrices[flat.flat_type];
-      flatCounts[flat.flat_type]++;
-    });
+    // flats.forEach(flat => {
+    //   totalFlatCost += flatPrices[flat.flat_type];
+    //   flatCounts[flat.flat_type]++;
+    // });
 
-    // Location-based adjustment
-    let locationMultiplier = 1.0;
-    if (location_lat && location_lng) {
-      const isUrban = await this.isUrbanLocation(location_lat, location_lng);
-      locationMultiplier = isUrban ? 1.2 : 1.0;
-    }
+    // // Location-based adjustment
+    // let locationMultiplier = 1.0;
+    // if (location_lat && location_lng) {
+    //   const isUrban = await this.isUrbanLocation(location_lat, location_lng);
+    //   locationMultiplier = isUrban ? 1.2 : 1.0;
+    // }
 
-    // User count cost
-    const userCountCost = user_emails.length * 1000;
+    // // User count cost
+    // const userCountCost = user_emails.length * 1000;
 
     // Total price
-    const basePrice = (totalFlatCost + userCountCost) * locationMultiplier;
+    const basePrice = totalFlatCost  ;
     const tax = basePrice * 0.15;
     const totalPrice = basePrice + tax;
 
@@ -49,9 +49,9 @@ export class PricingService {
       base_price: basePrice,
       tax,
       total_price: totalPrice,
-      flat_counts: flatCounts,
-      user_count: user_emails.length,
-      location_multiplier: locationMultiplier,
+      // flat_counts: flatCounts,
+      // user_count: user_emails.length,
+      // location_multiplier: locationMultiplier,
     };
   }
 

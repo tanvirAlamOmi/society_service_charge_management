@@ -5,6 +5,7 @@ export class PaymentEntity implements PrismaPayment {
   id: number;
   user_id: number;
   flat_id: number;
+  bill_id: number;
   society_id: number; 
   amount: Decimal | null;
   status: PaymentStatus;

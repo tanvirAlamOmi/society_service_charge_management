@@ -14,6 +14,8 @@ export class RegistrationPaymentEntity implements RegistrationPayment {
   transaction_details: any | null;  
   created_at: Date;
   updated_at: Date;
+  payment_method: string | null;
+  payment_date: Date;
 
   society?: Partial<Society> | null;
   user?: Partial<User> | null;

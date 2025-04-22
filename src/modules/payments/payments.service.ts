@@ -6,25 +6,23 @@ import { UpdatePaymentDto } from './dto/update-payment.dto';
 import { PaymentEntity } from './entities/payment.entity';
 import axios from 'axios';
 import { PaymentStatus } from '@prisma/client';
+import { BillService } from '../bill/bill.service';
 
 @Injectable()
 export class PaymentsService {
   constructor(
     private prisma: PrismaService,
     private configService: ConfigService,
+    private readonly billService: BillService,
   ) {}
 
   async create(createPaymentDto: CreatePaymentDto, tranId?: string): Promise<PaymentEntity> {
     return this.prisma.payment.create({
       data: {
-        user: {
-          connect: { id: createPaymentDto.user_id }, 
-        },
-        flat:   { 
-          connect: { id: createPaymentDto.flat_id } },    
-        society: {
-          connect: { id: createPaymentDto.society_id },  
-        },
+        user: { connect: { id: createPaymentDto.user_id } },
+        flat:   {  connect: { id: createPaymentDto.flat_id } },    
+        society: { connect: { id: createPaymentDto.society_id } },
+        bill: {  connect: { id: createPaymentDto.bill_id } },
         amount: createPaymentDto.amount ?? null,
         status: createPaymentDto.status,
         payment_month: new Date(createPaymentDto.payment_month),
@@ -35,10 +33,18 @@ export class PaymentsService {
   }
 
   async initiatePayment(createPaymentDto: CreatePaymentDto): Promise<any> {
-    const { user_id, flat_id, society_id, amount, payment_month } = createPaymentDto;
-
+    const { user_id, flat_id, society_id, amount, payment_month, bill_id } = createPaymentDto;
+   
+    if (!amount || amount <= 0) {
+      throw new BadRequestException('Payment amount is required and must be greater than 0');
+    }
+    
     const user = await this.prisma.user.findUnique({ where: { id: user_id } });
     if (!user) throw new BadRequestException(`User with ID ${user_id} not found`);
+    
+    const bill = await this.prisma.bill.findUnique({ where: { id: bill_id } });
+    if (!bill) throw new BadRequestException(`Bill with ID ${bill_id} not found`);
+    if (bill.status === 'PAID') throw new BadRequestException(`Bill with ID ${bill_id} is already paid`);
     
     const storeId = this.configService.get<string>('STORE_ID');
     const storePasswd = this.configService.get<string>('STORE_PASSWORD');
@@ -74,13 +80,12 @@ export class PaymentsService {
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       });
 
-      if (response.data.status === 'SUCCESS') {
-        const payment = await this.create({ ...createPaymentDto, status: PaymentStatus.SUCCESS }, tranId);
+      if (response.data.status === 'SUCCESS') {         
+        const payment = await this.create({ ...createPaymentDto, status: PaymentStatus.PENDING }, tranId);
         
-        const paymentUrl = response.data.GatewayPageURL; // Adjust based on actual response structure
+        const paymentUrl = response.data.GatewayPageURL;  
 
-        // Return the desired response format
-        return {
+         return {
           payment_url: paymentUrl,
           payment_id: payment.id,
         };
@@ -91,6 +96,89 @@ export class PaymentsService {
       throw new BadRequestException('Payment initiation failed: ' + error.message);
     }
   }
+
+  async verifyPayment(valId: string): Promise<any> {
+    const storeId = this.configService.get<string>('STORE_ID');
+    const storePasswd = this.configService.get<string>('STORE_PASSWORD');
+    const validationUrl = this.configService.get<string>('VALIDATION_URL'); // Add to .env, e.g., https://securepay.sslcommerz.com/validator/api/validationserverAPI.php
+
+    if (!validationUrl || !storeId || !storePasswd) {
+      throw new BadRequestException('Payment verification configuration missing');
+    }
+
+    try {
+      const response = await axios.get(validationUrl, {
+        params: {
+          val_id: valId,
+          store_id: storeId,
+          store_passwd: storePasswd,
+          format: 'json',
+        },
+      });
+
+      return response.data;
+    } catch (error) {
+      throw new BadRequestException('Payment verification failed: ' + error.message);
+    }
+  }
+
+  async handlePaymentCallback(payload: any): Promise<any> {     
+    const { tran_id, status, val_id, amount, currency, card_type } = payload;
+
+    const payment = await this.prisma.payment.findUnique({
+      where: { tran_id },
+    });
+
+    if (!payment) {
+      console.log('Payment with transaction ID ${tran_id} not found at handlePaymentCallback');
+      
+      throw new BadRequestException(`Payment with transaction ID ${tran_id} not found`);
+    }
+
+    let updatedStatus: PaymentStatus;
+    let transactionDetails = payload;
+
+    switch (status) {
+      case 'VALID':
+      case 'VALIDATED':
+        updatedStatus = PaymentStatus.SUCCESS;
+        const verification = await this.verifyPayment(val_id);
+        if (verification.status !== 'VALID' && verification.status !== 'VALIDATED') {
+          throw new BadRequestException('Payment verification failed');
+        }
+        transactionDetails = verification;  
+        break;
+      case 'FAILED':
+        updatedStatus = PaymentStatus.FAILED;
+        break;
+      case 'CANCELED':
+        updatedStatus = PaymentStatus.CANCELLED;
+        break;
+      default:
+        updatedStatus = PaymentStatus.PENDING;
+    }
+
+    const updatedPayment = await this.prisma.payment.update({
+      where: { tran_id },
+      data: {
+        status: updatedStatus,
+        transaction_details: transactionDetails,  
+        payment_method: card_type || 'UNKNOWN', 
+        amount: parseFloat(amount) || payment.amount,
+        currency: currency || 'BDT',
+      },
+    });
+    
+    if (updatedPayment.bill_id) {
+      await this.billService.updateBillStatusFromPayment({
+        bill_id: updatedPayment.bill_id,
+        status: updatedStatus,
+        amount: updatedPayment.amount ? updatedPayment.amount.toNumber() : 0, 
+      });
+    }
+
+    return updatedPayment;
+  } 
 
   async findAll(): Promise<PaymentEntity[]> {
     return this.prisma.payment.findMany();

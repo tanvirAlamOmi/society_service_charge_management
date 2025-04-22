@@ -115,8 +115,7 @@ export class FlatsService {
             number: flat.number,
             flat_type: flat.flat_type,
             owner_id: flat.owner_id,
-            resident_id: flat.resident_id || null,
-            society_id: flat.society_id, // Now present due to mapping
+            society_id: flat.society_id, 
             created_at: new Date(),
           },
         }),
@@ -136,7 +135,11 @@ export class FlatsService {
   async findOne(id: number): Promise<FlatEntity> {
     const flat = await this.prisma.flat.findUnique({
       where: { id },
-      include: { society: true, owner: true, residents: true, user: true },
+      include: { society: true, owner: true, 
+        residents: {
+          include: { resident: true },  
+          where: { end_date: null },  
+      }, },
     });
     if (!flat) {
       throw new NotFoundException(`Flat with ID ${id} not found`);
@@ -145,13 +148,88 @@ export class FlatsService {
   }
 
   async update(id: number, updateFlatDto: UpdateFlatDto): Promise<FlatEntity> {
-    const flat = await this.prisma.flat.findUnique({ where: { id } });
+    const flat = await this.prisma.flat.findUnique({
+      where: { id },
+      include: {
+        residents: {
+          where: { end_date: null },
+          take: 1,
+          orderBy: { created_at: 'asc' },
+        },
+      },
+    });
     if (!flat) {
       throw new NotFoundException(`Flat with ID ${id} not found`);
     }
-    return this.prisma.flat.update({
-      where: { id },
-      data: updateFlatDto,
+
+    const newResidentId = updateFlatDto.resident_id;
+    const currentResident = flat.residents[0];
+
+    const { resident_id, ...flatUpdateData } = updateFlatDto;
+
+    return this.prisma.$transaction(async (prisma) => {
+      if (newResidentId !== undefined) {
+        if (currentResident) {
+          // Check for conflicting end_date
+          const conflictingRecord = await prisma.flatResident.findFirst({
+            where: {
+              flat_id: id,
+              resident_id: currentResident.resident_id,
+              end_date: { not: null }, // Look for historical records
+            },
+            orderBy: { end_date: 'desc' }, // Get the most recent
+          });
+
+          let newEndDate = new Date();
+          if (conflictingRecord && conflictingRecord.end_date) {
+            // Compare timestamps only if end_date is not null
+            if (conflictingRecord.end_date.getTime() === newEndDate.getTime()) {
+              newEndDate = new Date(newEndDate.getTime() + 1);
+            }
+          }
+
+          await prisma.flatResident.update({
+            where: {
+              id: currentResident.id,
+            },
+            data: { end_date: newEndDate },
+          });
+        }
+
+        if (newResidentId) {
+          const newResident = await prisma.user.findUnique({
+            where: { id: newResidentId },
+          });
+          if (!newResident) {
+            throw new NotFoundException(`User with ID ${newResidentId} not found`);
+          }
+
+          const existingActiveResident = await prisma.flatResident.findFirst({
+            where: {
+              flat_id: id,
+              resident_id: newResidentId,
+              end_date: null,
+            },
+          });
+
+          if (!existingActiveResident) {
+            await prisma.flatResident.create({
+              data: {
+                flat_id: id,
+                resident_id: newResidentId,
+                start_date: new Date(),
+              },
+            });
+          } else {
+            console.log(`Resident ${newResidentId} is already active for flat ${id}`);
+          }
+        }
+      }
+
+      return prisma.flat.update({
+        where: { id },
+        data: flatUpdateData,
+      });
     });
   }
 
@@ -184,7 +262,7 @@ export class FlatsService {
         society: {
           select: {
             id: true,
-            name: true, // Include other society fields as needed
+            name: true,
             service_charges: {
               where: {
                 flat_type: { in: ['TWO_BHK', 'THREE_BHK', 'FOUR_BHK'] }
@@ -211,6 +289,10 @@ export class FlatsService {
           }
         },
         residents: {
+          where: {
+            end_date: null // Only include the current resident
+          },
+          take: 1, // Ensure only one active resident is returned
           include: {
             resident: {
               select: {
@@ -252,7 +334,8 @@ export class FlatsService {
         service_charges: flat.society.service_charges.filter(
           serviceCharge => serviceCharge.flat_type === flat.flat_type
         )
-      }
+      },
+      residents: flat.residents.length > 0 ? flat.residents[0] : null
     }));
   }
 }

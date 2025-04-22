@@ -9,7 +9,7 @@ import { ServiceChargesModule } from './service-charges/service-charges.module';
 import { UserServiceChargesModule } from './user-service-charges/user-service-charges.module';
 import { FlatsModule } from './flats/flats.module';
 import { PaymentsModule } from './payments/payments.module';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { RolesModule } from './roles/roles.module';
 import { AuthModule } from './auth/auth.module';
 import { PrismaService } from './prisma/prisma.service';
@@ -19,7 +19,10 @@ import { CustomLoggerService } from 'src/common/logger/custom-logger.service';
 import { AllExceptionsFilter } from 'src/common/filters/all-exceptions.filter';
 import { RegistrationPaymentModule } from './registration-payment/registration-payment.module';
 import { PricingModule } from './pricing/pricing.module';
-
+import { MailModule } from 'src/modules/mail/mail.module';
+import { BillModule } from './bill/bill.module';
+import { MailerModule } from '@nestjs-modules/mailer';
+ 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
@@ -32,7 +35,29 @@ import { PricingModule } from './pricing/pricing.module';
     FlatsModule, 
     PaymentsModule, 
     RolesModule, 
-    AuthModule, RegistrationPaymentModule, PricingModule
+    AuthModule, 
+    RegistrationPaymentModule, 
+    PricingModule,
+    MailModule,
+    BillModule,
+    MailerModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        transport: {
+          host: 'smtp.gmail.com',
+          port: 465,
+          secure: true,  
+          auth: {
+            user: configService.get<string>('EMAIL_USER'),
+            pass: configService.get<string>('EMAIL_PASS'),
+          },
+        },
+        defaults: {
+          from: configService.get<string>('MAIL_FROM'),
+        },
+      }),
+    }),
   ],
   controllers: [AppController],
   providers: [

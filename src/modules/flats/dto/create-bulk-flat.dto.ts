@@ -19,11 +19,7 @@ export class CreateFlatForBulkDto {
   
     @IsInt()
     owner_id: number;
-  
-    @IsInt()
-    @IsOptional()
-    resident_id?: number;
-  
+ 
     @IsEnum(FlatType)
     flat_type: FlatType;
   }

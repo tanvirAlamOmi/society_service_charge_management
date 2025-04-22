@@ -1,6 +1,6 @@
-import { IsArray, IsEmail, IsEnum, IsInt, IsNotEmpty, IsNumber, IsOptional, IsString, ValidateNested } from 'class-validator';
+import { IsArray, IsEmail, IsEnum, IsInt, IsNotEmpty, IsNumber, IsOptional, IsString, Min, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
-import { FlatType } from '@prisma/client';
+import { FlatType, PaymentStatus } from '@prisma/client';
 
 export class FlatInfoDto {
   @IsString()
@@ -70,4 +70,25 @@ export class InitiatePaymentDto {
   @ValidateNested()
   @Type(() => BuildingInfoDto)
   building_info: BuildingInfoDto;
+}
+
+export class CreateRegistrationPaymentDto {
+  @IsEmail({}, { message: 'Invalid email address' })
+  email: string;
+
+  @IsNumber({}, { message: 'Amount must be a number' })
+  @Min(0.01, { message: 'Amount must be greater than 0' })
+  amount: number;
+
+  @IsOptional()
+  @IsString({ message: 'Promo code must be a string' })
+  promo_code?: string;
+
+  @IsOptional()
+  @IsNumber({}, { message: 'Society ID must be a number' })
+  society_id?: number;
+
+  @IsOptional()
+  @IsNumber({}, { message: 'User ID must be a number' })
+  user_id?: number;
 }

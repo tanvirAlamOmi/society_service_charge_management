@@ -10,7 +10,10 @@ export class CreatePaymentDto {
 
   @IsInt()
   society_id: number;
- 
+  
+  @IsInt()
+  bill_id: number;
+
   @IsNumber()
   @IsOptional()
   amount?: number;

@@ -56,6 +56,17 @@ enum PromoStatus {
   INACTIVE
 }
 
+enum BillStatus {
+  PENDING
+  PAID
+  CANCELLED
+}
+
+enum SocietyStatus {
+  ACTIVE 
+  INACTIVE
+}
+
 model Society {
   id          Int      @id @default(autoincrement())
   name        String
@@ -69,13 +80,15 @@ model Society {
   total_flats Int
   created_at  DateTime @default(now())
   updated_at    DateTime @updatedAt  @default(now())
+  status    SocietyStatus  @default(ACTIVE)
 
   users           User[]
   flats           Flat[]
   service_charges ServiceCharge[]
   invitations     Invitation[]
   registration_payments RegistrationPayment[]
-  payments  Payment[]  
+  payments  Payment[] 
+  bills     Bill[] 
 } 
 
 model User {
@@ -97,7 +110,6 @@ model User {
 
   role                 Role                @relation(fields: [role_id], references: [id])
   society              Society             @relation(fields: [society_id], references: [id])
-  flat                 Flat?               @relation(fields: [flat_id], references: [id])
   owned_flats          Flat[]              @relation("FlatOwner")
   payments             Payment[] 
   rented_flats         FlatResident[]      @relation("Resident")
@@ -105,6 +117,7 @@ model User {
   invitationsReceived  Invitation[]        @relation("Invitee")
   registration_payments RegistrationPayment[]
   promos        Promo[]
+  bills         Bill[]
 }
 
 model Role {
@@ -120,7 +133,6 @@ model Flat {
   number      String
   society_id  Int
   owner_id    Int
-  resident_id Int?
   flat_type   FlatType
   created_at  DateTime @default(now())
   updated_at    DateTime  @updatedAt  @default(now())
@@ -128,9 +140,10 @@ model Flat {
   society   Society        @relation(fields: [society_id], references: [id])
   owner     User           @relation("FlatOwner", fields: [owner_id], references: [id])
   residents FlatResident[]
-  user      User[]
   user_service_charges UserServiceCharge[]
   payments      Payment[]
+  bills         Bill[]
+  invitations   Invitation[]   @relation
 }
 
 model PredefinedServiceCharge {
@@ -172,9 +185,10 @@ model Payment {
   id                  Int      @id @default(autoincrement())
   user_id             Int
   flat_id             Int 
+  bill_id             Int 
   society_id          Int  
   amount              Decimal? @db.Decimal(10, 2)
-  status             PaymentStatus @default(PENDING) 
+  status              PaymentStatus @default(PENDING) 
   payment_month       DateTime @db.Date
   payment_date        DateTime @default(now())
   tran_id             String?  @unique
@@ -183,8 +197,9 @@ model Payment {
   payment_method      String?   @default("CASH")
 
   user           User          @relation(fields: [user_id], references: [id])
-  flat          Flat?         @relation(fields: [flat_id], references: [id])
+  flat           Flat          @relation(fields: [flat_id], references: [id])
   society        Society       @relation(fields: [society_id], references: [id])  
+  bill           Bill          @relation(fields: [bill_id], references: [id])
 }
 
 model FlatResident {
@@ -198,7 +213,8 @@ model FlatResident {
 
   flat     Flat @relation(fields: [flat_id], references: [id])
   resident User @relation("Resident", fields: [resident_id], references: [id])
-}
+
+ }
   
 model Invitation {
   id         Int              @id @default(autoincrement())
@@ -207,6 +223,7 @@ model Invitation {
   status     InvitationStatus @default(PENDING)
   society_id Int
   inviter_id Int?
+  flat_id    Int?
   user_id    Int?
   createdAt  DateTime         @default(now())
   updated_at    DateTime    @updatedAt  @default(now())
@@ -216,6 +233,7 @@ model Invitation {
   society Society @relation(fields: [society_id], references: [id])
   user    User?   @relation(fields: [user_id], references: [id], name: "Invitee")
   inviter User?   @relation(fields: [inviter_id], references: [id], name: "Inviter") 
+  flat    Flat?   @relation(fields: [flat_id], references: [id])  
 }
 
 model RegistrationPayment {
@@ -232,7 +250,9 @@ model RegistrationPayment {
   transaction_details Json?
   created_at    DateTime      @default(now())
   updated_at    DateTime      @updatedAt  @default(now())
-
+  payment_method      String?   @default("CASH")
+  payment_date        DateTime @default(now())
+  
   society       Society?      @relation(fields: [society_id], references: [id])
   user          User?         @relation(fields: [user_id], references: [id])
   promo         Promo?        @relation(fields: [promo_id], references: [id])
@@ -258,4 +278,23 @@ model Promo {
 
   user          User?       @relation(fields: [user_id], references: [id])
   registration_payments RegistrationPayment[]
+}
+
+model Bill {
+  id                  Int         @id @default(autoincrement())
+  user_id             Int
+  flat_id             Int
+  society_id          Int
+  bill_month          DateTime    @db.Date
+  common_charges      Json        // Array of { name, amount }
+  flat_charges        Json        // Array of { name, amount }
+  total_amount        Decimal     @db.Decimal(10, 2)
+  status              BillStatus  @default(PENDING)
+  created_at          DateTime    @default(now())
+  updated_at          DateTime    @updatedAt  @default(now())
+
+  user                User        @relation(fields: [user_id], references: [id])
+  flat                Flat        @relation(fields: [flat_id], references: [id])
+  society             Society     @relation(fields: [society_id], references: [id])
+  payments            Payment[]
 }

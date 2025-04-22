@@ -30,14 +30,13 @@ export class UsersController {
   }
 
   @Public() 
-  @Post(':id/accept') 
-  acceptInvitation(
-    @Param('id', ParseIntPipe) id: number,
-    @Body('token') token: string,
-    @Body() acceptInvitationDto: AcceptInvitationDto,
-  ): Promise<UserEntity> {
-    return this.usersService.acceptInvitation(id, token, acceptInvitationDto);
-  }
+  @Post('token/:token/accept')
+async acceptInvitation(
+  @Param('token') token: string,
+  @Body() acceptInvitationDto: AcceptInvitationDto
+) {
+  return this.usersService.acceptInvitation(token, acceptInvitationDto);
+}
 
   @Post(':id/cancel') 
   cancelInvitation(@Param('id', ParseIntPipe) id: number): Promise<UserEntity> {

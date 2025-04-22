@@ -7,12 +7,14 @@ import { UserStatus, Invitation, InvitationStatus } from '@prisma/client';
 import { AcceptInvitationDto } from './dto/accept-invitation.dto';
 import { AuthService } from '../auth/auth.service'; 
 import { randomBytes } from 'crypto';
+import { MailService } from '../mail/mail.service';
 
 @Injectable()
 export class UsersService {
   constructor(
     private prisma: PrismaService,
     private authService: AuthService, 
+    private mailService: MailService,
   ) {}
 
   async create(createUserDto: CreateUserDto): Promise<UserEntity> {
@@ -341,6 +343,21 @@ export class UsersService {
   
       return createdInvitations;
     });
+
+    for (const invitation of invitations) {
+      try {
+        await this.mailService.sendInvitationEmail(
+          invitation.email,
+          usersToInvite.find((u) => u.email === invitation.email)!.fullname,
+          invitation.token,
+        );
+      } catch (error) {
+        failed.push({
+          email: invitation.email,
+          error: `Failed to send invitation email: ${error.message}`,
+        });
+      }
+    }
   
     return {
       successful: invitations.map(inv => ({ id: inv.user_id, email: inv.email, invitationId: inv.id })),
@@ -348,14 +365,13 @@ export class UsersService {
     };
   }
 
-  async acceptInvitation(userId: number, token: string, acceptInvitationDto: AcceptInvitationDto): Promise<UserEntity> {
-    const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (!user) {
-      throw new NotFoundException(`User with ID ${userId} not found`);
-    }
+  async acceptInvitation(
+    token: string,
+    acceptInvitationDto: AcceptInvitationDto
+  ): Promise<UserEntity> {
     const invitation = await this.prisma.invitation.findUnique({
       where: { token },
-      include: { user: true, society: true },
+      include: { user: true, society: true, flat: true },
     });
   
     if (!invitation) {
@@ -373,37 +389,65 @@ export class UsersService {
         data: { status: 'EXPIRED' },
       });
       throw new BadRequestException('Invitation has expired');
-    } 
-
+    }
+  
+    const user = invitation.user;
+    if (!user) {
+      throw new NotFoundException(`User linked to the invitation not found`);
+    }
+  
     if (acceptInvitationDto.username) {
       const existingUsername = await this.prisma.user.findFirst({
         where: { username: acceptInvitationDto.username },
       });
-      if (existingUsername && existingUsername.id !== userId) {
+  
+      if (existingUsername && existingUsername.id !== user.id) {
         throw new BadRequestException('A user with this username already exists');
       }
     }
-
+  
     const hashedPassword = await this.authService.hashPassword(acceptInvitationDto.password);
-    
-    await this.prisma.invitation.update({
-      where: { id: invitation.id },
-      data: {
-        status: 'ACCEPTED',
-        acceptedAt: new Date(),
-      },
-    });
-
-    return this.prisma.user.update({
-      where: { id: userId },
-      data: {
-        username: acceptInvitationDto.username,
-        password: hashedPassword,
-        alias: acceptInvitationDto.alias,
-        phone: acceptInvitationDto.phone,
-        service_type: acceptInvitationDto.service_type,
-        status: UserStatus.ACTIVE,
-      },
+  
+    return this.prisma.$transaction(async (prisma) => {
+      await prisma.invitation.update({
+        where: { id: invitation.id },
+        data: {
+          status: 'ACCEPTED',
+          acceptedAt: now,
+        },
+      });
+  
+      const updatedUser = await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          username: acceptInvitationDto.username,
+          password: hashedPassword,
+          alias: acceptInvitationDto.alias,
+          phone: acceptInvitationDto.phone,
+          service_type: acceptInvitationDto.service_type,
+          status: UserStatus.ACTIVE,
+        },
+      });
+  
+      if (invitation.flat_id) {
+        await prisma.flatResident.updateMany({
+          where: {
+            flat_id: invitation.flat_id,
+            end_date: null,
+          },
+          data: { end_date: now },
+        });
+  
+        await prisma.flatResident.create({
+          data: {
+            flat_id: invitation.flat_id,
+            resident_id: user.id,
+            start_date: now,
+          },
+        });
+      }
+  
+      return updatedUser;
     });
   }
 
