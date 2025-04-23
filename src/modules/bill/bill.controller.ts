@@ -1,11 +1,13 @@
 import { Controller, Post, Get, Param, Body, ParseIntPipe, UseGuards, UsePipes, ValidationPipe } from '@nestjs/common';
 import { BillService } from './bill.service';
 import { GenerateBillsDto, AssignBillDto, PayBillDto, BillResponseDto, PayBillResponseDto } from './dto/create-bill.dto';
+import { Public } from '../auth/decorators/public.decorator';
 
 @Controller('bills')
 export class BillController {
   constructor(private billService: BillService) {}
 
+  @Public()
   @Post('generate')
   async generateBills(@Body() dto: GenerateBillsDto): Promise<BillResponseDto[]> {
     return this.billService.generateBills(dto);

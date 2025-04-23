@@ -20,6 +20,7 @@ export class RegistrationPaymentController {
     return this.registrationPaymentsService.initiatePayment(initiatePaymentDto);
   }
 
+  @Public()
   @Post('success')
   @Redirect()
   async handleSuccess(@Body() payload: any) {
@@ -46,6 +47,7 @@ export class RegistrationPaymentController {
     }
   }
 
+  @Public()
   @Post('failed')
   @Redirect()
   async handleFailed(@Body() payload: any) {
@@ -72,6 +74,7 @@ export class RegistrationPaymentController {
     }
   }
 
+  @Public()
   @Post('cancelled')
   @Redirect()
   async handleCancelled(@Body() payload: any) {

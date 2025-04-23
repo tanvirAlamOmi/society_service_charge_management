@@ -5,6 +5,7 @@ import { UpdatePaymentDto } from './dto/update-payment.dto';
 import { PaymentEntity } from './entities/payment.entity';
 import { PaymentStatus } from '@prisma/client';
 import { ConfigService } from '@nestjs/config';
+import { Public } from '../auth/decorators/public.decorator';
 
 @Controller('payments')
 export class PaymentsController {
@@ -62,6 +63,7 @@ export class PaymentsController {
   //   return { message: 'Payment cancellation callback received', data: body };
   // }
 
+  @Public()
   @Post('success')
   @Redirect()
   async handleSuccess(@Body() payload: any) {
@@ -88,6 +90,7 @@ export class PaymentsController {
     }
   }
 
+  @Public()
   @Post('failed')
   @Redirect()
   async handleFailed(@Body() payload: any) {
@@ -112,6 +115,7 @@ export class PaymentsController {
     }
   }
 
+  @Public()
   @Post('cancelled')
   @Redirect()
   async handleCancelled(@Body() payload: any) {
