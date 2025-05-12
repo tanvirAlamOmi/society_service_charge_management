@@ -17,11 +17,11 @@ import { APP_GUARD } from '@nestjs/core';
 import { JwtAuthGuard } from './auth/jwt/jwt-auth.guard';
 import { CustomLoggerService } from 'src/common/logger/custom-logger.service';
 import { AllExceptionsFilter } from 'src/common/filters/all-exceptions.filter';
-import { RegistrationPaymentModule } from './registration-payment/registration-payment.module';
 import { PricingModule } from './pricing/pricing.module';
 import { MailModule } from 'src/modules/mail/mail.module';
 import { BillModule } from './bill/bill.module';
 import { MailerModule } from '@nestjs-modules/mailer';
+import { SubscriptionModule } from './subscription/subscription.module';
  
 @Module({
   imports: [
@@ -36,7 +36,7 @@ import { MailerModule } from '@nestjs-modules/mailer';
     PaymentsModule, 
     RolesModule, 
     AuthModule, 
-    RegistrationPaymentModule, 
+    SubscriptionModule, 
     PricingModule,
     MailModule,
     BillModule,

@@ -65,6 +65,8 @@ enum BillStatus {
 enum SocietyStatus {
   ACTIVE 
   INACTIVE
+  PAYMENT_DUE
+  PAYMENT_PENDING
 }
 
 model Society {
@@ -80,15 +82,15 @@ model Society {
   total_flats Int
   created_at  DateTime @default(now())
   updated_at    DateTime @updatedAt  @default(now())
-  status    SocietyStatus  @default(ACTIVE)
+  status    SocietyStatus  @default(INACTIVE)
 
   users           User[]
   flats           Flat[]
   service_charges ServiceCharge[]
-  invitations     Invitation[]
-  registration_payments RegistrationPayment[]
+  invitations     Invitation[] 
   payments  Payment[] 
   bills     Bill[] 
+  subscriptions   Subscription[]
 } 
 
 model User {
@@ -100,24 +102,25 @@ model User {
   phone              String?    @unique
   password           String?
   role_id            Int
-  society_id         Int
+  society_id         Int?
   flat_id            Int?
   service_type       String?
   pay_service_charge Boolean    @default(true)
   created_at         DateTime   @default(now())
-  updated_at    DateTime       @updatedAt  @default(now())
+  updated_at         DateTime       @updatedAt  @default(now())
   status             UserStatus @default(PENDING)
 
   role                 Role                @relation(fields: [role_id], references: [id])
-  society              Society             @relation(fields: [society_id], references: [id])
+  society              Society?             @relation(fields: [society_id], references: [id])
   owned_flats          Flat[]              @relation("FlatOwner")
   payments             Payment[] 
   rented_flats         FlatResident[]      @relation("Resident")
   invitationsSent      Invitation[]        @relation("Inviter")
   invitationsReceived  Invitation[]        @relation("Invitee")
-  registration_payments RegistrationPayment[]
+  subscriptions Subscription[]
   promos        Promo[]
   bills         Bill[]
+  passwordResetTokens PasswordResetToken[]
 }
 
 model Role {
@@ -129,13 +132,13 @@ model Role {
 
 
 model Flat {
-  id          Int      @id @default(autoincrement())
+  id          Int       @id @default(autoincrement())
   number      String
   society_id  Int
   owner_id    Int
   flat_type   FlatType
-  created_at  DateTime @default(now())
-  updated_at    DateTime  @updatedAt  @default(now())
+  created_at  DateTime  @default(now())
+  updated_at  DateTime  @updatedAt  @default(now())
   
   society   Society        @relation(fields: [society_id], references: [id])
   owner     User           @relation("FlatOwner", fields: [owner_id], references: [id])
@@ -157,13 +160,13 @@ model PredefinedServiceCharge {
 }
 
 model ServiceCharge {
-  id                           Int      @id @default(autoincrement())
+  id                           Int          @id @default(autoincrement())
   society_id                   Int
   predefined_service_charge_id Int
   flat_type                    FlatType
-  amount                       Decimal  @db.Decimal(10, 2)
-  created_at                   DateTime @default(now()) 
-  updated_at    DateTime    @updatedAt  @default(now())
+  amount                       Decimal      @db.Decimal(10, 2)
+  created_at                   DateTime     @default(now()) 
+  updated_at                   DateTime     @updatedAt  @default(now())
 
   society                   Society                 @relation(fields: [society_id], references: [id])
   predefined_service_charge PredefinedServiceCharge @relation(fields: [predefined_service_charge_id], references: [id])
@@ -175,7 +178,7 @@ model UserServiceCharge {
   predefined_service_charge_id Int
   amount                       Decimal  @db.Decimal(10, 2)
   created_at                   DateTime @default(now())
-  updated_at    DateTime    @updatedAt  @default(now())
+  updated_at                   DateTime @updatedAt  @default(now())
 
   flat                      Flat                    @relation(fields: [flat_id], references: [id])
   predefined_service_charge PredefinedServiceCharge @relation(fields: [predefined_service_charge_id], references: [id])
@@ -235,29 +238,7 @@ model Invitation {
   inviter User?   @relation(fields: [inviter_id], references: [id], name: "Inviter") 
   flat    Flat?   @relation(fields: [flat_id], references: [id])  
 }
-
-model RegistrationPayment {
-  id            Int           @id @default(autoincrement())
-  session_id    String?        @unique // SSLCOMMERZ session ID
-  tran_id       String?       // SSLCOMMERZ transaction ID
-  email         String         
-  amount        Float
-  currency      String        @default("BDT")
-  status        PaymentStatus @default(PENDING)
-  society_id    Int?           
-  user_id       Int?          
-  promo_id      Int?           
-  transaction_details Json?
-  created_at    DateTime      @default(now())
-  updated_at    DateTime      @updatedAt  @default(now())
-  payment_method      String?   @default("CASH")
-  payment_date        DateTime @default(now())
   
-  society       Society?      @relation(fields: [society_id], references: [id])
-  user          User?         @relation(fields: [user_id], references: [id])
-  promo         Promo?        @relation(fields: [promo_id], references: [id])
-}
-
 model Promo {
   id            Int         @id @default(autoincrement())
   code          String      @unique
@@ -277,7 +258,7 @@ model Promo {
   updated_at    DateTime    @updatedAt  @default(now())
 
   user          User?       @relation(fields: [user_id], references: [id])
-  registration_payments RegistrationPayment[]
+  subscriptions Subscription[]
 }
 
 model Bill {
@@ -297,4 +278,38 @@ model Bill {
   flat                Flat        @relation(fields: [flat_id], references: [id])
   society             Society     @relation(fields: [society_id], references: [id])
   payments            Payment[]
+}
+
+model Subscription {
+  id                  Int               @id @default(autoincrement())
+  session_id          String?           @unique  
+  tran_id             String?           @unique 
+  email               String
+  amount              Float           
+  currency            String            @default("BDT")
+  society_id          Int
+  user_id             Int?
+  promo_id            Int?
+  transaction_details Json?
+  start_date          DateTime          @db.Date
+  end_date            DateTime          @db.Date
+  payment_date        DateTime?         
+  payment_method      String?           @default("UNKNOWN")
+  status        PaymentStatus @default(PENDING) 
+  created_at          DateTime          @default(now())
+  updated_at          DateTime          @updatedAt  @default(now())
+
+  society             Society           @relation(fields: [society_id], references: [id])
+  user                User?             @relation(fields: [user_id], references: [id])
+  promo               Promo?            @relation(fields: [promo_id], references: [id])
+}
+
+model PasswordResetToken {
+  id        Int      @id @default(autoincrement())
+  code      String
+  userId    Int
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
 }

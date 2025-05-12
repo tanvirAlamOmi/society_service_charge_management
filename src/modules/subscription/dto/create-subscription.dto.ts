@@ -72,7 +72,7 @@ export class InitiatePaymentDto {
   building_info: BuildingInfoDto;
 }
 
-export class CreateRegistrationPaymentDto {
+export class CreateSubscriptionDto {
   @IsEmail({}, { message: 'Invalid email address' })
   email: string;
 

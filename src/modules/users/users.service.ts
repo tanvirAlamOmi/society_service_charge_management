@@ -8,6 +8,7 @@ import { AcceptInvitationDto } from './dto/accept-invitation.dto';
 import { AuthService } from '../auth/auth.service'; 
 import { randomBytes } from 'crypto';
 import { MailService } from '../mail/mail.service';
+import { userSelect } from '../prisma/selects/user.select';
 
 @Injectable()
 export class UsersService {
@@ -371,14 +372,14 @@ export class UsersService {
   ): Promise<UserEntity> {
     const invitation = await this.prisma.invitation.findUnique({
       where: { token },
-      include: { user: true, society: true, flat: true },
+      include: { user: { select: userSelect }, society: true, flat: true },
     });
   
     if (!invitation) {
       throw new NotFoundException('Invitation not found');
     }
   
-    if (invitation.status !== 'PENDING') {
+    if (invitation.status !== InvitationStatus.PENDING) {
       throw new BadRequestException(`Invitation is already ${invitation.status}`);
     }
   
@@ -386,7 +387,7 @@ export class UsersService {
     if (now > invitation.expiresAt) {
       await this.prisma.invitation.update({
         where: { id: invitation.id },
-        data: { status: 'EXPIRED' },
+        data: { status: InvitationStatus.EXPIRED },
       });
       throw new BadRequestException('Invitation has expired');
     }
@@ -412,7 +413,7 @@ export class UsersService {
       await prisma.invitation.update({
         where: { id: invitation.id },
         data: {
-          status: 'ACCEPTED',
+          status: InvitationStatus.ACCEPTED,
           acceptedAt: now,
         },
       });
@@ -426,25 +427,33 @@ export class UsersService {
           phone: acceptInvitationDto.phone,
           service_type: acceptInvitationDto.service_type,
           status: UserStatus.ACTIVE,
+          society_id: invitation.society_id,
         },
       });
   
       if (invitation.flat_id) {
-        await prisma.flatResident.updateMany({
-          where: {
-            flat_id: invitation.flat_id,
-            end_date: null,
-          },
-          data: { end_date: now },
-        });
+        if (updatedUser.role_id === 2) { // Owner
+          await prisma.flat.update({
+            where: { id: invitation.flat_id },
+            data: { owner_id: user.id },
+          });
+        } else if (updatedUser.role_id === 3) { // Resident
+          await prisma.flatResident.updateMany({
+            where: {
+              flat_id: invitation.flat_id,
+              end_date: null,
+            },
+            data: { end_date: now },
+          });
   
-        await prisma.flatResident.create({
-          data: {
-            flat_id: invitation.flat_id,
-            resident_id: user.id,
-            start_date: now,
-          },
-        });
+          await prisma.flatResident.create({
+            data: {
+              flat_id: invitation.flat_id,
+              resident_id: user.id,
+              start_date: now,
+            },
+          });
+        }
       }
   
       return updatedUser;
@@ -653,4 +662,23 @@ export class UsersService {
       residents,
     };
   }
+
+  async checkAvailability(email: string, phone: string): Promise<{ email: boolean; phone: boolean }> {
+    if (!email || !phone) {
+      throw new BadRequestException('Email and phone are required');
+    }
+    const existingEmail = await this.prisma.user.findUnique({
+      where: { email },
+    });
+
+    const existingPhone = await this.prisma.user.findFirst({
+      where: { phone },
+    });
+
+    return {
+      email: !existingEmail,
+      phone: !existingPhone,
+    };
+  }
+  
 }

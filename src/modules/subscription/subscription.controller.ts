@@ -1,22 +1,22 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete, ParseIntPipe, Query, BadRequestException, Redirect } from '@nestjs/common';
-import { RegistrationPaymentService } from './registration-payment.service'; 
 import { PricingService } from '../pricing/pricing.service';
-import { InitiatePaymentDto } from './dto/create-registration-payment.dto';
-import { RegistrationPaymentEntity } from './entities/registration-payment.entity';
+import { InitiatePaymentDto } from './dto/create-subscription.dto';
+import { SubscriptionEntity } from './entities/subscription.entity';
 import { Public } from '../auth/decorators/public.decorator';
 import { ConfigService } from '@nestjs/config';
+import { SubscriptionService } from './subscription.service';
 
-@Controller('registration-payments')
-export class RegistrationPaymentController {
+@Controller('subscriptions')
+export class SubscriptionController {
   constructor(
-    private readonly registrationPaymentsService: RegistrationPaymentService,
+    private readonly registrationPaymentsService: SubscriptionService,
      private readonly configService: ConfigService,
 
   ) {}
  
   @Public()
   @Post('initiate')
-  async initiatePayment(@Body() initiatePaymentDto: InitiatePaymentDto): Promise<{ payment_url: string; payment_id: number }> {
+  async initiatePayment(@Body() initiatePaymentDto: InitiatePaymentDto): Promise<{ payment_url: string; subscription_id: number }> {
     return this.registrationPaymentsService.initiatePayment(initiatePaymentDto);
   }
 
@@ -101,20 +101,17 @@ export class RegistrationPaymentController {
     }
   }
 
-  @Get('history')
-  async getPaymentHistory(
-    @Query('email') email: string,
-    @Query('societyId', ParseIntPipe) societyId?: number,
-  ): Promise<RegistrationPaymentEntity[]> {
-    if (!email && !societyId) {
-      throw new BadRequestException('Either email or societyId is required');
-    }
-    return this.registrationPaymentsService.getPaymentHistory({ email, societyId });
-  }
+
   
   @Get()
-  findAll(): Promise<RegistrationPaymentEntity[]> {
+  findAll(): Promise<SubscriptionEntity[]> {
     return this.registrationPaymentsService.findAll();
   }
   
+  @Get('society/:societyId')
+  async getSocietySubscription( 
+    @Param('societyId', ParseIntPipe) societyId: number,
+  ): Promise<SubscriptionEntity[]> {
+    return this.registrationPaymentsService.getSocietySubscription(  societyId );
+  }
 }

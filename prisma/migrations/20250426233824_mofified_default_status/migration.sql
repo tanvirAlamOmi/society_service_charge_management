@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "Society" ALTER COLUMN "status" SET DEFAULT 'INACTIVE';

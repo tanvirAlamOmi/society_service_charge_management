@@ -7,6 +7,7 @@ import { PaymentEntity } from './entities/payment.entity';
 import axios from 'axios';
 import { PaymentStatus } from '@prisma/client';
 import { BillService } from '../bill/bill.service';
+import { userSelect } from 'src/modules/prisma/selects/user.select';
 
 @Injectable()
 export class PaymentsService {
@@ -239,7 +240,7 @@ export class PaymentsService {
         user_id: userId,
         society_id: societyId,
       },
-      
+      include: { user: { select: userSelect }, society: true, flat: true, bill: true },
     });
   }
 
@@ -252,7 +253,25 @@ export class PaymentsService {
     return this.prisma.payment.findMany({
       where: {
         society_id: societyId,
-      } 
+      },
+      include: { user: { select: userSelect }, society: true, flat: true, bill: true },
+    });
+  }
+
+  async findByBillId(billId: number ): Promise<PaymentEntity[]> {
+    // Validate user existence
+    const bill = await this.prisma.bill.findUnique({ where: { id: billId } });
+    if (!bill) {
+      throw new BadRequestException(`User with ID ${billId} not found`);
+    }
+    
+     return this.prisma.payment.findMany({
+      where: {
+        bill_id: billId, 
+      },
+      include: { user: { select: userSelect }, society: true, flat: true, bill: true },
+
+      
     });
   }
 }

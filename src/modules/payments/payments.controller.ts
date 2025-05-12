@@ -177,4 +177,11 @@ export class PaymentsController {
   ): Promise<PaymentEntity[]> {
     return this.paymentsService.findPaymentsByUserId(userId, societyId);
   }
+ 
+  @Get('bill/:billId')
+  findByBillId(
+    @Param('billId', ParseIntPipe) billId: number,
+  ): Promise<PaymentEntity[]> {
+    return this.paymentsService.findByBillId(billId);
+  }
 }

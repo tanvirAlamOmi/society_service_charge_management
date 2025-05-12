@@ -90,4 +90,12 @@ async acceptInvitation(
   }> {
     return this.usersService.findUsersBySociety(societyId);
   }
+
+  @Post('check-availability')
+  async checkAvailability(
+    @Body('email') email: string,
+    @Body('phone') phone: string,
+  ) {  
+    return await this.usersService.checkAvailability(email, phone); 
+  }
 }

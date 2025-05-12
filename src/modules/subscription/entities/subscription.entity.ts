@@ -1,6 +1,6 @@
-import { RegistrationPayment, PaymentStatus, Society, User, Promo } from '@prisma/client';
+import { Subscription, PaymentStatus, Society, User, Promo } from '@prisma/client';
 
-export class RegistrationPaymentEntity implements RegistrationPayment {
+export class SubscriptionEntity implements Subscription {
   id: number;
   session_id: string | null;
   tran_id: string | null;
@@ -8,7 +8,7 @@ export class RegistrationPaymentEntity implements RegistrationPayment {
   amount: number;
   currency: string;
   status: PaymentStatus;
-  society_id: number | null;
+  society_id: number;
   user_id: number | null;
   promo_id: number | null;
   transaction_details: any | null;  
@@ -16,6 +16,8 @@ export class RegistrationPaymentEntity implements RegistrationPayment {
   updated_at: Date;
   payment_method: string | null;
   payment_date: Date;
+  start_date: Date;
+  end_date: Date;
 
   society?: Partial<Society> | null;
   user?: Partial<User> | null;
